@@ -8,10 +8,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@ui': path.resolve(__dirname, '../../packages/talvra-ui/src'),
-      '@hooks': path.resolve(__dirname, '../../packages/talvra-hooks/src'),
-      '@routes': path.resolve(__dirname, '../../packages/talvra-routes/src'),
-      '@api': path.resolve(__dirname, '../../packages/talvra-api/src'),
+      '@ui': path.resolve(__dirname, '../packages/talvra-ui/src'),
+      '@hooks': path.resolve(__dirname, '../packages/talvra-hooks/src'),
+      '@routes': path.resolve(__dirname, '../packages/talvra-routes/src'),
+      '@api': path.resolve(__dirname, '../packages/talvra-api/src'),
     },
   },
   server: {

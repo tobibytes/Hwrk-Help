@@ -24,11 +24,13 @@ jobs:
         with:
           version: latest
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
+        working-directory: frontend
         run: pnpm install
 
-      - name: Verify workspace
+      - name: Verify frontend workspace
+        working-directory: frontend
         run: pnpm -r list
 
-      - name: Validate process handbook
+      - name: Validate process handbook (root)
         run: pnpm run validate:process
