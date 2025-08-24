@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import httpProxy from '@fastify/http-proxy'
 import { randomUUID } from 'node:crypto'
 
 const app = Fastify({ logger: true })
@@ -9,6 +10,7 @@ app.addHook('onRequest', async (req, reply) => {
   const reqId = typeof incoming === 'string' ? incoming : req.id
   reply.header('x-request-id', reqId)
 })
+
 
 // Root route (smoke)
 app.get('/', async () => {
@@ -27,7 +29,7 @@ const AUTH_UPSTREAM_HOST = process.env.AUTH_SERVICE_HOST ?? '127.0.0.1'
 const AUTH_UPSTREAM_PORT = Number(process.env.AUTH_SERVICE_PORT ?? 4001)
 const AUTH_UPSTREAM = `http://${AUTH_UPSTREAM_HOST}:${AUTH_UPSTREAM_PORT}`
 
-await app.register((await import('@fastify/http-proxy')).default, {
+await app.register(httpProxy as any, {
   upstream: AUTH_UPSTREAM,
   prefix: '/api/auth',
   rewritePrefix: '/auth'
