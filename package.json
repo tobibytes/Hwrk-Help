@@ -1,0 +1,17 @@
+{
+  "name": "talvra",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Microservice learning app monorepo",
+  "scripts": {
+    "validate:process": "tsx scripts/validate-process-json.ts",
+    "codegen": "echo 'OpenAPI codegen placeholder'",
+    "demo:e2e": "echo 'E2E demo placeholder'",
+    "dev": "echo 'Development placeholder'"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  }
+}

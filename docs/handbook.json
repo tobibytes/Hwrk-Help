@@ -1,0 +1,210 @@
+{
+    "process_handbook": {
+      "version": "1.0",
+      "pr": {
+        "principles": [
+          "One logical change per PR",
+          "Keep PRs small",
+          "Code, tests, and docs move together",
+          "Update OpenAPI and run codegen when endpoints change"
+        ],
+        "branching": {
+          "rule": "Create a branch per task",
+          "naming_examples": ["phase3/ingestion-pptx", "frontend/courses-page", "backend/auth-argon2"]
+        },
+        "template_checklist": [
+          "Summary of what changed and why",
+          "Scope of affected services or areas",
+          "How it was tested: unit, contract, integration, screenshots or logs if UI changed",
+          "Rollback plan",
+          "Docs updated",
+          "OpenAPI updated and codegen ran",
+          "Lint and types pass",
+          "Tests added or updated",
+          "No raw tags in Areas",
+          "Routes use FRONT_ROUTES and buildPath"
+        ],
+        "reviews": {
+          "owners_required": true,
+          "ci_must_be_green": true
+        }
+      },
+      "commits": {
+        "format": "type(scope): short summary",
+        "types": ["feat", "fix", "refactor", "perf", "test", "docs", "chore", "build", "ci"],
+        "rules": [
+          "Imperative mood",
+          "Subject under 72 chars",
+          "Reference issue or task id when useful"
+        ],
+        "examples": [
+          "feat(auth): add Argon2id hashing",
+          "fix(ingestion): handle ppt with embedded video",
+          "docs(frontend): add routing constants guide"
+        ]
+      },
+      "ownership": {
+        "paths": [
+          { "glob": "apps/web/**", "owner": "frontend" },
+          { "glob": "packages/talvra-ui/**", "owner": "frontend" },
+          { "glob": "packages/talvra-api/**", "owner": "frontend" },
+          { "glob": "services/**", "owner": "backend" },
+          { "glob": "migrations/**", "owner": "backend" },
+          { "glob": "docs/**", "owner": "product" }
+        ]
+      },
+      "ci_gates": {
+        "lint": true,
+        "typecheck": true,
+        "unit_tests": { "enabled": true, "coverage_min_lines": 0.8 },
+        "contract_tests": true,
+        "integration_smoke": true,
+        "openapi_diff_approved": true,
+        "frontend_guards": ["no_raw_tags_in_areas", "route_constants_only"]
+      },
+      "error_catalog": {
+        "shape": {
+          "error": {
+            "code": "string",
+            "message": "human readable",
+            "details": {},
+            "request_id": "uuid"
+          }
+        },
+        "codes": [
+          { "code": "UNAUTHENTICATED", "http": 401 },
+          { "code": "FORBIDDEN", "http": 403 },
+          { "code": "NOT_FOUND", "http": 404 },
+          { "code": "INVALID_ARGUMENT", "http": 400 },
+          { "code": "CONFLICT", "http": 409 },
+          { "code": "RATE_LIMITED", "http": 429 },
+          { "code": "INTERNAL", "http": 500 }
+        ],
+        "guidelines": [
+          "Do not leak internals",
+          "Always include request_id",
+          "Map validation failures to INVALID_ARGUMENT with field hints"
+        ]
+      },
+      "rate_limits": {
+        "auth": { "login_per_min_ip": 5, "oauth_callback_per_min_ip": 10 },
+        "canvas_sync": { "manual_per_min_user": 2 },
+        "search": { "per_min_user": 60 },
+        "policy": { "status": 429, "retry_after_header": true, "structured_logs": true }
+      },
+      "security_data": {
+        "secrets": ["env or secret manager only", "rotate on schedule"],
+        "pii": ["school email only", "encrypt Canvas tokens at rest"],
+        "retention_days": { "documents_media": 180, "logs": 90 },
+        "deletion": { "on_request_days": 7 },
+        "access": ["signed urls only for clients", "least privilege for service tokens"]
+      },
+      "runbooks": {
+        "reprocess_document": [
+          "Publish ingest.request with same doc_id",
+          "Workers are idempotent"
+        ],
+        "stuck_consumer": [
+          "Claim pending messages older than timeout to a fresh consumer",
+          "Restart worker and watch lag"
+        ],
+        "ai_error_spike": [
+          "Rotate or switch AI key",
+          "Enable backoff and circuit breaker"
+        ],
+        "blob_write_failures": [
+          "Serve cached markdown from Postgres if available",
+          "Queue write for later"
+        ],
+        "secret_rotation": [
+          "Update env",
+          "Restart service",
+          "Verify health and smoke tests"
+        ],
+        "purge_old_logs": [
+          "Delete logs where ts older than 90 days"
+        ]
+      },
+      "releases": {
+        "versioning": "semver per service",
+        "image_tags": ["semver", "git sha"],
+        "changelog": "generated from commit types",
+        "flow": ["merge to main", "CI builds and tags", "deploy to staging", "smoke tests", "promote to prod"]
+      },
+      "adrs": {
+        "when_to_write": ["new service", "new datastore or queue", "cross cutting change"],
+        "template": ["context", "options considered", "decision", "consequences"],
+        "location": "docs/process/adr/NNN-title.md"
+      },
+      "frontend_guardrails": {
+        "stack": ["React", "Vite", "React Router v6", "styled-components", "react-query"],
+        "rules": [
+          "Areas folder for features",
+          "No raw HTML tags in pages or Area components",
+          "Use Talvra UI primitives from @ui",
+          "All data fetching uses useAPI on top of react-query",
+          "Frontend routes live in src/app/routes.ts",
+          "API routes live in packages/talvra-routes via OpenAPI codegen"
+        ],
+        "performance": {
+          "first_load_bundle_gzip_kb_max": 200,
+          "route_chunk_gzip_kb_max": 100,
+          "practices": ["lazy load Areas", "memoize heavy lists", "avoid inline functions in hot paths"]
+        },
+        "a11y": [
+          "Keyboard reachable controls",
+          "Visible focus states",
+          "Labels for inputs",
+          "Contrast meets AA",
+          "Use Text component with semantic prop when needed"
+        ]
+      },
+      "backend_guardrails": [
+        "No ORM, raw SQL migrations",
+        "Idempotent workers",
+        "Small payloads on streams",
+        "Encrypt Canvas tokens",
+        "Rate limit auth and sync",
+        "Request ids through logs",
+        "Health endpoints per service"
+      ],
+      "codegen_sync": {
+        "backend_to_frontend": [
+          "API Gateway serves OpenAPI at /openapi.json",
+          "Run codegen to produce typed clients in talvra-api and route constants in talvra-routes"
+        ],
+        "frontend_routes": [
+          "Add new pages only in src/app/routes.ts",
+          "Build React Router config from those constants"
+        ]
+      },
+      "checklists": {
+        "add_backend_endpoint": [
+          "Implement handler and contract",
+          "Update OpenAPI",
+          "Add unit and contract tests",
+          "Run codegen",
+          "Update docs"
+        ],
+        "add_frontend_page": [
+          "Create component in the Area",
+          "Add a route object in src/app/routes.ts",
+          "Use Talvra UI primitives only",
+          "Use useAPI for data",
+          "Add tests and screenshots"
+        ],
+        "add_stream_message": [
+          "Define schema",
+          "Validate on publish and on consume",
+          "Make handlers idempotent",
+          "Add integration test with Redis"
+        ],
+        "ai_agent_pr": [
+          "Create branch phaseX or frontend or backend",
+          "Describe what changed and why",
+          "Explain how it was tested and results",
+          "Ensure CI is green"
+        ]
+      }
+    }
+  }

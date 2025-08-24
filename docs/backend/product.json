@@ -1,0 +1,305 @@
+Here’s a structured JSON version of the backend product doc for your AI to consume.
+
+{
+  "backend_product": {
+    "purpose": "Provide a compliant learning backend that ingests course content, generates study aids, integrates with Canvas, and keeps students in control of submissions.",
+    "outcomes": [
+      "Frictionless import of course materials",
+      "Faster understanding via notes, slides, flashcards, and videos",
+      "Clear awareness of assignments and due dates",
+      "Modular, testable, replaceable services"
+    ],
+    "target_users": [
+      "Students using Canvas who want summaries, slides, flashcards, and videos",
+      "Frontend engineers who need clean contracts",
+      "Operators who need logs and safe deploys"
+    ],
+    "success_metrics": {
+      "ingestion_success_rate_pct": 98,
+      "time_to_first_note_sec_for_10_page_pdf": 90,
+      "reminder_delivery_success_pct": 99,
+      "api_read_p95_ms": 300
+    },
+    "guardrails_compliance": [
+      "No auto submission to Canvas",
+      "AI output is advisory and reviewed by the student",
+      "Respect Canvas API terms",
+      "Secrets only in env files linked via docker compose",
+      "Support deletion on request and encrypt tokens at rest"
+    ],
+    "scope": [
+      "Sync courses, assignments, and files from Canvas",
+      "Ingest files into Markdown plus structured JSON with media references",
+      "Generate notes, slides, flashcards, and video scripts",
+      "Render narrated MP4s from scripts and media",
+      "Expose semantic search over notes",
+      "Send reminders for due items",
+      "Serve clean APIs to the React app"
+    ],
+    "out_of_scope": [
+      "Grading",
+      "Plagiarism detection",
+      "Auto submission to LMS",
+      "Proctoring"
+    ],
+    "services": [
+      {
+        "name": "API Gateway",
+        "language": "Node TypeScript",
+        "role": "Front door for web app, auth check, proxy, small aggregation"
+      },
+      {
+        "name": "Auth Service",
+        "language": "Node TypeScript",
+        "role": "Email plus password, Google OAuth, single student per school email, sessions"
+      },
+      {
+        "name": "Canvas Service",
+        "language": "Node TypeScript",
+        "role": "Canvas OAuth, sync courses and assignments and module items, enqueue ingestion"
+      },
+      {
+        "name": "Ingestion Service",
+        "language": "Python",
+        "role": "Extract text and media, normalize to Markdown plus JSON, store to Blob"
+      },
+      {
+        "name": "AI Service",
+        "language": "Python",
+        "role": "Generate summaries, slides, flashcards, and video scripts"
+      },
+      {
+        "name": "Media Service",
+        "language": "Python, optional Rust core later",
+        "role": "TTS plus ffmpeg to produce MP4 and audio, store to Blob"
+      },
+      {
+        "name": "Notification Service",
+        "language": "Node TypeScript",
+        "role": "Send reminders for assignments"
+      },
+      {
+        "name": "Logging Service",
+        "language": "Go or Rust",
+        "role": "Collect structured logs and store in Postgres"
+      }
+    ],
+    "infra": {
+      "database": "Neon Postgres",
+      "storage": "Azure Blob Storage",
+      "queue": "Redis Streams",
+      "search_embeddings": "Redis with RediSearch"
+    },
+    "high_level_flows": [
+      {
+        "name": "First connect",
+        "steps": [
+          "Student signs up and logs in",
+          "Student connects Canvas",
+          "Canvas Service syncs courses, assignments, and files to Postgres",
+          "New files enqueue ingestion tasks"
+        ]
+      },
+      {
+        "name": "Ingest to study aids",
+        "steps": [
+          "Ingestion downloads file, outputs Markdown and JSON, stores media",
+          "AI generates notes, slides, flashcards, and script",
+          "Media composes MP4 from script and assets",
+          "API returns links and data to frontend"
+        ]
+      },
+      {
+        "name": "Reminders",
+        "steps": [
+          "Notification reads assignments and due dates",
+          "Schedules and sends reminders"
+        ]
+      }
+    ],
+    "data_contracts": {
+      "streams": {
+        "ingest.request": {
+          "user_id": "uuid",
+          "doc_id": "uuid",
+          "source": "canvas or upload",
+          "file_url": "blob url",
+          "kind": "pdf or docx or pptx"
+        },
+        "ai.request": {
+          "user_id": "uuid",
+          "doc_id": "uuid",
+          "markdown_url": "blob url",
+          "json_url": "blob url"
+        },
+        "media.request": {
+          "user_id": "uuid",
+          "doc_id": "uuid",
+          "script": "string",
+          "assets": ["blob url"]
+        }
+      },
+      "ingestion_json_example": {
+        "title": "Week 3 Lecture",
+        "sections": [
+          {
+            "heading": "Intro to Graphs",
+            "text": "A graph is ...",
+            "media": [
+              { "type": "image", "url": "blob://image1.png" },
+              { "type": "video", "url": "blob://clip1.mp4" }
+            ],
+            "source": { "kind": "pptx", "page": 3 }
+          }
+        ]
+      },
+      "ai_outputs": {
+        "notes_markdown_url": "blob url",
+        "slides_markdown_url": "blob url",
+        "flashcards": [{ "q": "string", "a": "string", "hint": "optional string" }],
+        "video_script": "string with timing hints"
+      }
+    },
+    "api_surfaces": {
+      "auth": [
+        { "method": "POST", "path": "/auth/signup" },
+        { "method": "POST", "path": "/auth/login" },
+        { "method": "GET", "path": "/auth/oauth/google/start" },
+        { "method": "GET", "path": "/auth/oauth/google/callback" },
+        { "method": "POST", "path": "/auth/logout" }
+      ],
+      "canvas": [
+        { "method": "POST", "path": "/canvas/connect" },
+        { "method": "POST", "path": "/canvas/sync" },
+        { "method": "GET", "path": "/canvas/courses" },
+        { "method": "GET", "path": "/canvas/assignments" }
+      ],
+      "ingestion": [
+        { "method": "POST", "path": "/ingestion/start" },
+        { "method": "GET", "path": "/documents/:id" }
+      ],
+      "ai": [
+        { "method": "POST", "path": "/ai/start" },
+        { "method": "GET", "path": "/notes/:doc_id" },
+        { "method": "GET", "path": "/flashcards/:doc_id" }
+      ],
+      "media": [
+        { "method": "POST", "path": "/media/start" },
+        { "method": "GET", "path": "/media/:doc_id" }
+      ],
+      "search": [
+        { "method": "GET", "path": "/search" }
+      ],
+      "health": [
+        { "method": "GET", "path": "/health" }
+      ]
+    },
+    "database_plan": {
+      "no_orm": true,
+      "migrations_by_service": true,
+      "core_tables": [
+        "users",
+        "sessions",
+        "canvas_courses",
+        "canvas_assignments",
+        "documents",
+        "notes",
+        "flashcards",
+        "media_assets",
+        "logs"
+      ]
+    },
+    "storage_plan": {
+      "containers": ["raw", "derived", "media"],
+      "client_access": "signed urls only",
+      "paths": {
+        "raw": "raw/{user_id}/{doc_id}/{original_filename}",
+        "derived_md": "derived/{user_id}/{doc_id}/{artifact}.md",
+        "derived_json": "derived/{user_id}/{doc_id}/structure.json",
+        "media": "media/{user_id}/{doc_id}/{asset_id}.{ext}"
+      }
+    },
+    "non_functionals": {
+      "reliability": [
+        "Idempotent ingestion by doc_id",
+        "At least once delivery with idempotent handlers"
+      ],
+      "performance": [
+        "Stream large files to Blob",
+        "Bounded worker concurrency"
+      ],
+      "security": [
+        "Encrypt Canvas tokens",
+        "Rotate session on login",
+        "Rate limit sensitive routes"
+      ],
+      "observability": [
+        "Structured logs in Postgres",
+        "Request ids across services",
+        "Per service health endpoints"
+      ]
+    },
+    "testing_plan": {
+      "unit": [
+        "Pure domain logic",
+        "Adapters with fakes for db, blob, queue, http"
+      ],
+      "contract": [
+        "Validate endpoint request and response shapes",
+        "Validate stream message shapes on publish and consume"
+      ],
+      "integration": [
+        "Compose Postgres, Redis, Azurite",
+        "Run end to end with Canvas fixtures"
+      ],
+      "fixtures": [
+        "Sample PDF",
+        "Sample DOCX",
+        "Sample PPTX"
+      ],
+      "ci_gates": [
+        "Lint",
+        "Type check",
+        "Unit tests",
+        "Contract tests",
+        "Integration tests"
+      ]
+    },
+    "delivery_rules_for_ai_agent": {
+      "branch_per_task": true,
+      "branch_naming": "phaseX/task-name",
+      "pull_request_template": [
+        "What changed",
+        "Why it changed",
+        "How it was tested",
+        "Results with logs or screenshots"
+      ]
+    },
+    "phasing": [
+      "Phase 1 Auth and Gateway with health",
+      "Phase 2 Canvas connect and sync",
+      "Phase 3 Ingestion for PDF DOCX PPTX",
+      "Phase 4 AI summaries and slides and flashcards",
+      "Phase 5 Media MP4 basics",
+      "Phase 6 Reminders",
+      "Phase 7 Logs and dashboards"
+    ],
+    "risks_and_mitigations": [
+      "Canvas payload variance handled by defensive parsing and fixtures",
+      "Legacy formats handled by LibreOffice headless conversion",
+      "Large media handled by streaming not buffering",
+      "Vendor limits handled by backoff and retries, queues at service edges"
+    ],
+    "open_questions": [
+      "Preferred channel for reminders, email or push",
+      "TTS provider choice",
+      "Retention policy for blobs and logs"
+    ],
+    "glossary": {
+      "Markdown": "Human readable text for notes and slides",
+      "JSON structure": "Machine friendly sections and media map",
+      "Blob": "File stored in Azure Blob Storage",
+      "Idempotent": "Safe to run multiple times with the same input"
+    }
+  }
+}

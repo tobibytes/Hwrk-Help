@@ -1,0 +1,650 @@
+{
+  "task_plan_version": "1.0",
+  "phases": [
+    {
+      "name": "Phase 0 - Repo and CI basics",
+      "tasks": [
+        {
+          "id": "T000",
+          "title": "Initialize monorepo and workspace",
+          "branch": "tooling/init-monorepo",
+          "paths": ["package.json", "pnpm-workspace.yaml", ".editorconfig", ".gitignore", "README.md"],
+          "steps": [
+            "Create pnpm workspace and root scripts",
+            "Add README with alias guidance"
+          ],
+          "run": ["pnpm install"],
+          "acceptance": [
+            "pnpm install succeeds",
+            "pnpm -r list shows workspace"
+          ],
+          "pr": {
+            "title": "chore(repo) init pnpm workspace and repo meta",
+            "body": "Why: set foundation for multi apps. What changed: workspace files. Tests: install ok."
+          },
+          "completed": true
+        },
+        {
+          "id": "T001",
+          "title": "Add CI workflow skeleton",
+          "branch": "tooling/ci-skeleton",
+          "paths": [".github/workflows/ci.yml"],
+          "steps": ["Add checkout and pnpm install steps"],
+          "run": [],
+          "acceptance": ["CI runs and passes on PR"],
+          "pr": {
+            "title": "ci: add workflow skeleton",
+            "body": "Why: early CI feedback. Tests: green run on PR."
+          },
+          "completed": false
+        },
+        {
+          "id": "T002",
+          "title": "Process handbook and validator",
+          "branch": "tooling/process-handbook",
+          "paths": ["docs/process.md", "docs/process.json", "scripts/validate-process-json.ts", "package.json", ".github/workflows/ci.yml"],
+          "steps": [
+            "Add handbook and JSON",
+            "Create zod validator and pnpm script",
+            "Call validator in CI"
+          ],
+          "run": ["pnpm add -D tsx zod", "pnpm run validate:process"],
+          "acceptance": ["Validator prints process.json valid", "CI runs validator"],
+          "pr": {
+            "title": "docs(process) add handbook and JSON with validator",
+            "body": "Why: single source of truth and guard. Tests: validator pass and CI hook."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 1 - Frontend base you can run",
+      "tasks": [
+        {
+          "id": "T010",
+          "title": "Scaffold Vite React app and structure",
+          "branch": "web/scaffold",
+          "paths": ["apps/web/**", "packages/configs/**", "tsconfig.base.json"],
+          "steps": [
+            "Create Vite React TS app under apps/web",
+            "Add aliases and Areas folders",
+            "Add AppProvider, AppRoutes, routes.ts"
+          ],
+          "run": ["pnpm --filter web dev"],
+          "acceptance": ["Dev server renders Admin page"],
+          "pr": {
+            "title": "feat(web) scaffold Vite app with Areas and routes skeleton",
+            "body": "What: Vite app, routes, Areas. Tests: dev server shows Admin."
+          },
+          "completed": false
+        },
+        {
+          "id": "T011",
+          "title": "Shared UI primitives package",
+          "branch": "web/ui-primitives",
+          "paths": ["packages/talvra-ui/**", "apps/web/.eslintrc.cjs", "packages/configs/.eslintrc.base.cjs"],
+          "steps": [
+            "Add styled-components primitives",
+            "Enforce no raw tags in Areas with ESLint override"
+          ],
+          "run": ["pnpm -r lint"],
+          "acceptance": ["Admin renders with @ui only", "Lint fails on raw tag usage"],
+          "pr": {
+            "title": "feat(ui) add Talvra UI primitives and lint guard",
+            "body": "What: primitives and guard. Tests: render Admin, lint check."
+          },
+          "completed": false
+        },
+        {
+          "id": "T012",
+          "title": "Frontend route constants as source of truth",
+          "branch": "web/front-routes-constants",
+          "paths": ["apps/web/src/app/routes.ts", "apps/web/src/app/AppRoutes.tsx", "packages/talvra-hooks/src/useTalvraNav.ts"],
+          "steps": [
+            "Define FRONT_ROUTES with lazy components",
+            "Add buildPath and useTalvraNav"
+          ],
+          "run": ["pnpm --filter web dev"],
+          "acceptance": ["Navigation via constants works"],
+          "pr": {
+            "title": "feat(web) add FRONT_ROUTES constants and typed navigation",
+            "body": "What: routes file and helpers. Tests: navigate to pages."
+          },
+          "completed": false
+        },
+        {
+          "id": "T013",
+          "title": "React Query and useAPI hook package",
+          "branch": "web/useapi",
+          "paths": ["packages/talvra-api/src/useAPI.ts", "apps/web/src/app/AppProvider.tsx"],
+          "steps": [
+            "Add QueryClientProvider",
+            "Implement generic useAPI for GET and mutate"
+          ],
+          "run": ["pnpm --filter web dev"],
+          "acceptance": ["Sample GET shows data in a test component"],
+          "pr": {
+            "title": "feat(api) add typed useAPI on react query",
+            "body": "What: provider and hook. Tests: sample GET."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 2 - Backend base you can run",
+      "tasks": [
+        {
+          "id": "T020",
+          "title": "Docker compose for local stack",
+          "branch": "infra/compose-base",
+          "paths": ["infra/docker-compose.yml", "infra/redis/**", "infra/azurite/**", ".env.example"],
+          "steps": [
+            "Add Postgres or Neon connection, Redis, Azurite",
+            "Document ports and env"
+          ],
+          "run": ["docker compose -f infra/docker-compose.yml up -d"],
+          "acceptance": ["All containers healthy"],
+          "pr": {
+            "title": "infra: add compose for Postgres Redis Azurite",
+            "body": "What: compose file and env. Tests: services healthy."
+          },
+          "completed": false
+        },
+        {
+          "id": "T021",
+          "title": "API Gateway service skeleton",
+          "branch": "backend/gateway-skeleton",
+          "paths": ["services/api-gateway/**"],
+          "steps": [
+            "Create Node TS service",
+            "GET /health returns ok true and request id"
+          ],
+          "run": ["pnpm --filter ./services/api-gateway dev"],
+          "acceptance": [ "curl localhost:3001/health returns ok true" ],
+          "pr": {
+            "title": "feat(gateway) skeleton with health and request id",
+            "body": "What: service base and health. Tests: curl ok."
+          },
+          "completed": false
+        },
+        {
+          "id": "T022",
+          "title": "Auth service skeleton",
+          "branch": "backend/auth-skeleton",
+          "paths": ["services/auth-service/**", "migrations/auth/**"],
+          "steps": [
+            "Add users and sessions migrations",
+            "Implement signup, login, session endpoints"
+          ],
+          "run": ["pnpm --filter ./services/auth-service dev"],
+          "acceptance": ["Signup and login work against Postgres"],
+          "pr": {
+            "title": "feat(auth) service skeleton and basic auth endpoints",
+            "body": "What: endpoints and migrations. Tests: signup and login curl."
+          },
+          "completed": false
+        },
+        {
+          "id": "T023",
+          "title": "Gateway to Auth integration with cookies",
+          "branch": "backend/gateway-auth-integration",
+          "paths": ["services/api-gateway/**"],
+          "steps": [
+            "Proxy /auth/* to Auth",
+            "Set and read HttpOnly cookie"
+          ],
+          "run": ["pnpm --filter ./services/api-gateway dev"],
+          "acceptance": ["Login through gateway sets session"],
+          "pr": {
+            "title": "feat(gateway) proxy auth and session cookies",
+            "body": "What: reverse proxy and cookie handling."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 3 - Canvas integration with fixtures first",
+      "tasks": [
+        {
+          "id": "T030",
+          "title": "Canvas service skeleton and fixtures",
+          "branch": "backend/canvas-skeleton",
+          "paths": ["services/canvas-service/**", "migrations/canvas/**"],
+          "steps": [
+            "Add courses and assignments tables",
+            "Sync from fixture JSON and expose GET endpoints"
+          ],
+          "run": ["pnpm --filter ./services/canvas-service dev"],
+          "acceptance": ["GET /canvas/courses returns fixture data"],
+          "pr": {
+            "title": "feat(canvas) service skeleton with fixture sync",
+            "body": "What: tables and endpoints. Tests: sync then read."
+          },
+          "completed": false
+        },
+        {
+          "id": "T031",
+          "title": "Gateway proxies Canvas routes",
+          "branch": "backend/gateway-canvas-proxy",
+          "paths": ["services/api-gateway/**"],
+          "steps": ["Proxy /canvas/* to canvas service"],
+          "run": [],
+          "acceptance": ["Frontend can call /api/canvas/courses via gateway"],
+          "pr": {
+            "title": "feat(gateway) proxy canvas routes",
+            "body": "What: proxy rules."
+          },
+          "completed": false
+        },
+        {
+          "id": "T032",
+          "title": "Frontend Courses list page",
+          "branch": "web/courses-list",
+          "paths": ["apps/web/src/Areas/Courses/**", "packages/talvra-routes/**"],
+          "steps": [
+            "Add GET_ALL_COURSES route constant",
+            "Create useTalvraCourses and render list"
+          ],
+          "run": ["pnpm --filter web dev"],
+          "acceptance": ["Visiting /courses shows fixture list"],
+          "pr": {
+            "title": "feat(web) courses list using useAPI and route constants",
+            "body": "What: hook and list. Tests: manual route visit."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 4 - Ingestion pipeline start",
+      "tasks": [
+        {
+          "id": "T040",
+          "title": "Ingestion service skeleton and Redis stream",
+          "branch": "backend/ingestion-skeleton",
+          "paths": ["services/ingestion-service/**", "migrations/documents/**"],
+          "steps": [
+            "Add documents table and endpoints",
+            "Publish ingest.request on start"
+          ],
+          "run": ["pnpm --filter ./services/ingestion-service dev"],
+          "acceptance": ["POST /ingestion/start enqueues a message"],
+          "pr": {
+            "title": "feat(ingestion) service skeleton with Redis stream",
+            "body": "What: endpoints and queue."
+          },
+          "completed": false
+        },
+        {
+          "id": "T041",
+          "title": "Extract PDF and DOCX to Markdown and JSON",
+          "branch": "backend/ingestion-extractor",
+          "paths": ["services/ingestion-service/src/**"],
+          "steps": [
+            "Adapters for pdf and docx",
+            "Write markdown and structure.json to Blob"
+          ],
+          "run": ["curl -X POST /ingestion/start with fixture"],
+          "acceptance": ["Blob urls exist and document row updated"],
+          "pr": {
+            "title": "feat(ingestion) extract PDF and DOCX to md and json",
+            "body": "What: adapters and storage. Tests: fixture run."
+          },
+          "completed": false
+        },
+        {
+          "id": "T042",
+          "title": "Frontend document view page",
+          "branch": "web/documents-view",
+          "paths": ["apps/web/src/Areas/Courses/**", "packages/talvra-routes/**"],
+          "steps": [
+            "Routes to fetch documents and notes",
+            "Render document title and blob links"
+          ],
+          "run": ["pnpm --filter web dev"],
+          "acceptance": ["Document screen shows links after processing"],
+          "pr": {
+            "title": "feat(web) document view screen",
+            "body": "What: page and routes."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 5 - AI outputs",
+      "tasks": [
+        {
+          "id": "T050",
+          "title": "AI service skeleton with mock outputs",
+          "branch": "backend/ai-skeleton",
+          "paths": ["services/ai-service/**", "migrations/ai/**"],
+          "steps": [
+            "Tables for notes and flashcards",
+            "POST /ai/start produces markdown and flashcards"
+          ],
+          "run": ["pnpm --filter ./services/ai-service dev"],
+          "acceptance": ["Notes and flashcards stored and retrievable"],
+          "pr": {
+            "title": "feat(ai) service skeleton with mock outputs",
+            "body": "What: endpoints and tables."
+          },
+          "completed": false
+        },
+        {
+          "id": "T051",
+          "title": "Frontend slides and flashcards",
+          "branch": "web/slides-flashcards",
+          "paths": ["apps/web/src/Areas/Courses/**"],
+          "steps": [
+            "Render slides with reveal.js",
+            "Render flashcards with flip cards"
+          ],
+          "run": ["pnpm --filter web dev"],
+          "acceptance": ["Slides and flashcards visible for a processed doc"],
+          "pr": {
+            "title": "feat(web) slides and flashcards views",
+            "body": "What: pages wired to AI outputs."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 6 - Media pipeline",
+      "tasks": [
+        {
+          "id": "T060",
+          "title": "Media service and TTS stub",
+          "branch": "backend/media-skeleton",
+          "paths": ["services/media-service/**", "migrations/media/**"],
+          "steps": [
+            "POST /media/start builds MP4 with stub TTS",
+            "GET /media/:doc_id returns urls"
+          ],
+          "run": ["pnpm --filter ./services/media-service dev"],
+          "acceptance": ["MP4 and thumbnail exist in Blob"],
+          "pr": {
+            "title": "feat(media) service skeleton with stub TTS",
+            "body": "What: MP4 pipeline and storage."
+          },
+          "completed": false
+        },
+        {
+          "id": "T061",
+          "title": "Frontend video playback",
+          "branch": "web/video-player",
+          "paths": ["apps/web/src/Areas/Courses/**", "packages/talvra-ui/src/Video.tsx"],
+          "steps": [
+            "Add Video primitive",
+            "Show MP4 on document screen"
+          ],
+          "run": ["pnpm --filter web dev"],
+          "acceptance": ["Video plays in browser"],
+          "pr": {
+            "title": "feat(web) video playback for document",
+            "body": "What: primitive and page."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 7 - Search and reminders",
+      "tasks": [
+        {
+          "id": "T070",
+          "title": "Semantic search with RedisSearch",
+          "branch": "backend/search-embeddings",
+          "paths": ["services/ai-service/**", "services/api-gateway/**"],
+          "steps": [
+            "Store embeddings for notes",
+            "GET /search returns top matches"
+          ],
+          "run": ["curl /search?q=term"],
+          "acceptance": ["Query returns expected doc ids"],
+          "pr": {
+            "title": "feat(search) semantic search over notes",
+            "body": "What: embedding index and endpoint."
+          },
+          "completed": false
+        },
+        {
+          "id": "T071",
+          "title": "Notification service and reminders",
+          "branch": "backend/notify-reminders",
+          "paths": ["services/notification-service/**", "migrations/notifications/**"],
+          "steps": [
+            "Schedule email reminders from assignments",
+            "Send test messages"
+          ],
+          "run": ["pnpm --filter ./services/notification-service dev"],
+          "acceptance": ["A test reminder is sent to dev inbox"],
+          "pr": {
+            "title": "feat(notify) assignment reminders",
+            "body": "What: scheduler and sender."
+          },
+          "completed": false
+        },
+        {
+          "id": "T072",
+          "title": "Reminders settings UI",
+          "branch": "web/reminders-settings",
+          "paths": ["apps/web/src/Areas/Admin/**"],
+          "steps": [
+            "Add settings form that calls notify API",
+            "Persist and read settings"
+          ],
+          "run": ["pnpm --filter web dev"],
+          "acceptance": ["Settings save and load correctly"],
+          "pr": {
+            "title": "feat(web) reminders settings UI",
+            "body": "What: admin UI and routes."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 8 - Canvas real OAuth and ingestion bridge",
+      "tasks": [
+        {
+          "id": "T080",
+          "title": "Canvas OAuth connect",
+          "branch": "backend/canvas-oauth",
+          "paths": ["services/canvas-service/**"],
+          "steps": [
+            "Implement real OAuth handshake",
+            "Encrypt and store tokens"
+          ],
+          "run": ["pnpm --filter ./services/canvas-service dev"],
+          "acceptance": ["Connect flow completes and tokens saved"],
+          "pr": {
+            "title": "feat(canvas) real OAuth and token storage",
+            "body": "What: OAuth endpoints and crypto."
+          },
+          "completed": false
+        },
+        {
+          "id": "T081",
+          "title": "Sync enqueues ingestion for new module items",
+          "branch": "backend/canvas-to-ingestion",
+          "paths": ["services/canvas-service/**", "services/ingestion-service/**"],
+          "steps": [
+            "Enumerate new files and publish ingest.request",
+            "Deduplicate by doc id"
+          ],
+          "run": ["Run sync and observe documents appear"],
+          "acceptance": ["New files are processed end to end"],
+          "pr": {
+            "title": "feat(canvas) enqueue ingestion for new items",
+            "body": "What: event emission and dedupe."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 9 - Logging and observability",
+      "tasks": [
+        {
+          "id": "T090",
+          "title": "Logging service with Postgres storage",
+          "branch": "backend/logging-service",
+          "paths": ["services/logging-service/**", "migrations/logs/**"],
+          "steps": [
+            "POST /logs inserts rows",
+            "Simple query endpoint"
+          ],
+          "run": ["pnpm --filter ./services/logging-service dev"],
+          "acceptance": ["Logs written and retrievable by request id"],
+          "pr": {
+            "title": "feat(logs) structured logs service and storage",
+            "body": "What: endpoint and schema."
+          },
+          "completed": false
+        },
+        {
+          "id": "T091",
+          "title": "Request id propagation",
+          "branch": "backend/request-id-plumbing",
+          "paths": ["services/**"],
+          "steps": [
+            "Gateway generates X-Request-Id",
+            "Downstream logs include it"
+          ],
+          "run": [],
+          "acceptance": ["One request is traceable across services"],
+          "pr": {
+            "title": "chore(observability) request id propagation",
+            "body": "What: header and logging."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 10 - Compliance and hardening",
+      "tasks": [
+        {
+          "id": "T100",
+          "title": "Rate limits and unified error model",
+          "branch": "backend/rate-limits-errors",
+          "paths": ["services/api-gateway/**", "services/**"],
+          "steps": [
+            "Apply rate limits per process.json",
+            "Return unified error shape"
+          ],
+          "run": ["Abuse an endpoint and see 429 with Retry-After"],
+          "acceptance": ["Error responses include request_id and codes"],
+          "pr": {
+            "title": "chore(security) rate limits and unified error shape",
+            "body": "What: middlewares and handlers."
+          },
+          "completed": false
+        },
+        {
+          "id": "T101",
+          "title": "Data retention jobs",
+          "branch": "backend/retention-jobs",
+          "paths": ["services/**"],
+          "steps": [
+            "Jobs to prune old logs and blobs",
+            "Dry run and then prune"
+          ],
+          "run": ["Run job and verify counts then deletes"],
+          "acceptance": ["Old data removed safely in dev"],
+          "pr": {
+            "title": "chore(data) retention jobs for logs and blobs",
+            "body": "What: scheduled tasks."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 11 - Codegen and sync",
+      "tasks": [
+        {
+          "id": "T110",
+          "title": "OpenAPI in gateway and frontend codegen scripts",
+          "branch": "tooling/openapi-codegen",
+          "paths": ["services/api-gateway/**", "packages/talvra-routes/**", "packages/talvra-api/**", "scripts/**"],
+          "steps": [
+            "Serve /openapi.json",
+            "Generate route constants and types for frontend"
+          ],
+          "run": ["pnpm run codegen"],
+          "acceptance": ["Generated files updated and build passes"],
+          "pr": {
+            "title": "tooling: OpenAPI and frontend codegen",
+            "body": "What: spec and generator."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
+      "name": "Phase 12 - Polishing and e2e",
+      "tasks": [
+        {
+          "id": "T120",
+          "title": "End to end demo with seeds",
+          "branch": "demo/e2e-flow",
+          "paths": ["scripts/seed/**", "README.md"],
+          "steps": [
+            "Seed student, course, and sample PDF",
+            "One command that runs stack and produces outputs"
+          ],
+          "run": ["pnpm run demo:e2e"],
+          "acceptance": ["Demo brings up UI and shows processed study aids"],
+          "pr": {
+            "title": "feat(demo) one command e2e with sample content",
+            "body": "What: seeds and demo script."
+          },
+          "completed": false
+        },
+        {
+          "id": "T121",
+          "title": "Accessibility pass on core pages",
+          "branch": "web/a11y-pass",
+          "paths": ["apps/web/**", "packages/talvra-ui/**"],
+          "steps": [
+            "Add labels and roles",
+            "Ensure visible focus and contrast"
+          ],
+          "run": ["Automated a11y checks on Admin and Courses"],
+          "acceptance": ["Checks pass on core pages"],
+          "pr": {
+            "title": "chore(web) a11y improvements on core pages",
+            "body": "What: focus, labels, roles."
+          },
+          "completed": false
+        },
+        {
+          "id": "T122",
+          "title": "Performance pass and lazy chunks",
+          "branch": "web/perf-chunks",
+          "paths": ["apps/web/**"],
+          "steps": [
+            "Lazy load Areas",
+            "Reduce initial bundle"
+          ],
+          "run": ["Analyze bundle and confirm budgets"],
+          "acceptance": [
+            "First load under 200 kb gzip",
+            "Route chunks under 100 kb"
+          ],
+          "pr": {
+            "title": "chore(web) code split Areas and tune bundles",
+            "body": "What: lazy routes and cleanup."
+          },
+          "completed": false
+        }
+      ]
+    }
+  ]
+}
