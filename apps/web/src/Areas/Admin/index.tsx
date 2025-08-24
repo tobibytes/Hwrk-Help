@@ -1,43 +1,39 @@
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard } from '@ui';
 
 export default function AdminArea() {
   return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
-      <h1>Talvra Admin</h1>
-      <p>Welcome to the Talvra learning platform administration area.</p>
-      
-      <nav style={{ marginTop: '2rem' }}>
-        <h2>Navigation</h2>
-        <ul>
-          <li>
-            <a href={buildPath(FRONT_ROUTES.ADMIN)}>
+    <TalvraSurface>
+      <TalvraStack>
+        <TalvraText as="h1">Talvra Admin</TalvraText>
+        <TalvraText>Welcome to the Talvra learning platform administration area.</TalvraText>
+        
+        <TalvraStack>
+          <TalvraText as="h2">Navigation</TalvraText>
+          <TalvraStack>
+            <TalvraLink href={buildPath(FRONT_ROUTES.ADMIN)}>
               {FRONT_ROUTES.ADMIN.name}
-            </a>
-          </li>
-          <li>
-            <a href={buildPath(FRONT_ROUTES.COURSES)}>
+            </TalvraLink>
+            <TalvraLink href={buildPath(FRONT_ROUTES.COURSES)}>
               {FRONT_ROUTES.COURSES.name}
-            </a>
-          </li>
-        </ul>
-      </nav>
+            </TalvraLink>
+          </TalvraStack>
+        </TalvraStack>
 
-      <div style={{ 
-        marginTop: '2rem', 
-        padding: '1rem', 
-        backgroundColor: '#f5f5f5', 
-        borderRadius: '4px' 
-      }}>
-        <h3>Phase 1: Frontend Base</h3>
-        <p>✅ Task T010: Scaffold Vite React app and structure</p>
-        <ul>
-          <li>✅ Created Vite React TypeScript app</li>
-          <li>✅ Added path aliases for @/, @ui, @hooks, @constants, @routes, @api</li>
-          <li>✅ Created Areas folder structure</li>
-          <li>✅ Added AppProvider, AppRoutes, and routes.ts</li>
-          <li>✅ Admin page renders successfully</li>
-        </ul>
-      </div>
-    </div>
+        <TalvraCard>
+          <TalvraStack>
+            <TalvraText as="h3">Phase 1: Frontend Base</TalvraText>
+            <TalvraText>✅ Task T010: Scaffold Vite React app and structure</TalvraText>
+            <TalvraStack>
+              <TalvraText>✅ Created Vite React TypeScript app</TalvraText>
+              <TalvraText>✅ Added path aliases for @/, @ui, @hooks, @constants, @routes, @api</TalvraText>
+              <TalvraText>✅ Created Areas folder structure</TalvraText>
+              <TalvraText>✅ Added AppProvider, AppRoutes, and routes.ts</TalvraText>
+              <TalvraText>✅ Admin page renders successfully</TalvraText>
+            </TalvraStack>
+          </TalvraStack>
+        </TalvraCard>
+      </TalvraStack>
+    </TalvraSurface>
   );
 }

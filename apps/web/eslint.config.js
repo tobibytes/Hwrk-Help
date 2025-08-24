@@ -20,4 +20,17 @@ export default tseslint.config([
       globals: globals.browser,
     },
   },
+  // Prevent raw HTML usage in Areas components
+  {
+    files: ['**/Areas/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXElement[openingElement.name.name=/^(div|span|p|h1|h2|h3|h4|h5|h6|a|ul|ol|li|nav|section|article|header|footer|main|aside)$/]',
+          message: 'Raw HTML elements are not allowed in Areas. Use Talvra UI primitives instead: Surface, Stack, Text, Link, etc.'
+        }
+      ]
+    }
+  }
 ])

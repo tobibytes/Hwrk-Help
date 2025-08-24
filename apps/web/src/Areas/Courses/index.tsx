@@ -1,40 +1,36 @@
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard } from '@ui';
 
 export default function CoursesArea() {
   return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
-      <h1>Courses</h1>
-      <p>This will display the list of courses from Canvas integration.</p>
-      
-      <nav style={{ marginTop: '2rem' }}>
-        <h2>Navigation</h2>
-        <ul>
-          <li>
-            <a href={buildPath(FRONT_ROUTES.ADMIN)}>
+    <TalvraSurface>
+      <TalvraStack>
+        <TalvraText as="h1">Courses</TalvraText>
+        <TalvraText>This will display the list of courses from Canvas integration.</TalvraText>
+        
+        <TalvraStack>
+          <TalvraText as="h2">Navigation</TalvraText>
+          <TalvraStack>
+            <TalvraLink href={buildPath(FRONT_ROUTES.ADMIN)}>
               {FRONT_ROUTES.ADMIN.name}
-            </a>
-          </li>
-          <li>
-            <a href={buildPath(FRONT_ROUTES.COURSES)}>
+            </TalvraLink>
+            <TalvraLink href={buildPath(FRONT_ROUTES.COURSES)}>
               {FRONT_ROUTES.COURSES.name}
-            </a>
-          </li>
-        </ul>
-      </nav>
+            </TalvraLink>
+          </TalvraStack>
+        </TalvraStack>
 
-      <div style={{ 
-        marginTop: '2rem', 
-        padding: '1rem', 
-        backgroundColor: '#e8f4fd', 
-        borderRadius: '4px' 
-      }}>
-        <h3>Coming in Future Tasks</h3>
-        <ul>
-          <li>T032: Frontend Courses list page</li>
-          <li>Canvas integration and course data display</li>
-          <li>Document management and study aids</li>
-        </ul>
-      </div>
-    </div>
+        <TalvraCard>
+          <TalvraStack>
+            <TalvraText as="h3">Coming in Future Tasks</TalvraText>
+            <TalvraStack>
+              <TalvraText>T032: Frontend Courses list page</TalvraText>
+              <TalvraText>Canvas integration and course data display</TalvraText>
+              <TalvraText>Document management and study aids</TalvraText>
+            </TalvraStack>
+          </TalvraStack>
+        </TalvraCard>
+      </TalvraStack>
+    </TalvraSurface>
   );
 }

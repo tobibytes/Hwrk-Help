@@ -7,11 +7,16 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': '/src',
-      '@ui': '/packages/talvra-ui/src',
-      '@hooks': '/packages/talvra-hooks/src',
-      '@constants': '/packages/talvra-constants/src',
-      '@routes': '/packages/talvra-routes/src',
-      '@api': '/packages/talvra-api/src',
+      '@ui': '/../../packages/talvra-ui/src',
+      '@hooks': '/../../packages/talvra-hooks/src',
+      '@constants': '/../../packages/talvra-constants/src',
+      '@routes': '/../../packages/talvra-routes/src',
+      '@api': '/../../packages/talvra-api/src',
+    },
+  },
+  server: {
+    fs: {
+      allow: ['..', '../..'],
     },
   },
 })
