@@ -27,14 +27,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@ui": ["../../packages/talvra-ui/src"],
-      "@ui/*": ["../../packages/talvra-ui/src/*"],
-      "@hooks": ["../../packages/talvra-hooks/src"],
-      "@hooks/*": ["../../packages/talvra-hooks/src/*"],
-      "@routes": ["../../packages/talvra-routes/src"],
-      "@routes/*": ["../../packages/talvra-routes/src/*"],
-      "@api": ["../../packages/talvra-api/src"],
-      "@api/*": ["../../packages/talvra-api/src/*"]
+      "@ui": ["../packages/talvra-ui/src"],
+      "@ui/*": ["../packages/talvra-ui/src/*"],
+      "@hooks": ["../packages/talvra-hooks/src"],
+      "@hooks/*": ["../packages/talvra-hooks/src/*"],
+      "@routes": ["../packages/talvra-routes/src"],
+      "@routes/*": ["../packages/talvra-routes/src/*"],
+      "@api": ["../packages/talvra-api/src"],
+      "@api/*": ["../packages/talvra-api/src/*"]
     }
   },
   "include": ["src"]
