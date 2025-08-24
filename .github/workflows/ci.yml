@@ -29,3 +29,6 @@ jobs:
 
       - name: Verify workspace
         run: pnpm -r list
+
+      - name: Validate process handbook
+        run: pnpm run validate:process

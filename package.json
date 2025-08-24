@@ -9,7 +9,10 @@
     "demo:e2e": "echo 'E2E demo placeholder'",
     "dev": "echo 'Development placeholder'"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "tsx": "^4.20.4",
+    "zod": "^4.1.0"
+  },
   "engines": {
     "node": ">=18",
     "pnpm": ">=8"

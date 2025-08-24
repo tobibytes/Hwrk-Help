@@ -54,7 +54,7 @@
             "title": "docs(process) add handbook and JSON with validator",
             "body": "Why: single source of truth and guard. Tests: validator pass and CI hook."
           },
-          "completed": false
+          "completed": true
         }
       ]
     },
