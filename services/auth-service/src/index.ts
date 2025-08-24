@@ -8,11 +8,7 @@ import { URLSearchParams } from 'node:url'
 const app = Fastify({ logger: true })
 
 // Env
-const DB_USER = process.env.POSTGRES_USER ?? 'talvra'
-const DB_PASSWORD = process.env.POSTGRES_PASSWORD ?? 'talvra'
-const DB_NAME = process.env.POSTGRES_DB ?? 'talvra'
-const DB_PORT = Number(process.env.POSTGRES_PORT ?? 5432)
-const DB_HOST = process.env.POSTGRES_HOST ?? '127.0.0.1'
+const DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://talvra:talvra@localhost:5432/talvra'
 const AUTH_HOST = process.env.AUTH_SERVICE_HOST ?? '0.0.0.0'
 const AUTH_PORT = Number(process.env.AUTH_SERVICE_PORT ?? 4001)
 const SESSION_COOKIE = process.env.AUTH_SESSION_COOKIE ?? 'talvra.sid'
@@ -29,7 +25,7 @@ function b64url(buf: Buffer) {
 }
 
 // PG
-const pool = new Pool({ user: DB_USER, password: DB_PASSWORD, database: DB_NAME, port: DB_PORT, host: DB_HOST })
+const pool = new Pool({ connectionString: DATABASE_URL })
 
 async function bootstrapDb() {
   await pool.query(`
@@ -50,7 +46,7 @@ async function bootstrapDb() {
   `)
 }
 
-app.register(cookie, { secret: process.env.AUTH_COOKIE_SECRET ?? 'dev-secret', hook: 'onRequest' })
+await app.register(cookie, { secret: process.env.AUTH_COOKIE_SECRET ?? 'dev-secret' })
 
 app.post('/auth/signup', async (req, reply) => {
   const body = (req.body ?? {}) as { email?: string; password?: string }
