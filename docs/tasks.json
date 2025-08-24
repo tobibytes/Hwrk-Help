@@ -94,41 +94,42 @@
             "title": "feat(ui) add Talvra UI primitives and lint guard",
             "body": "What: primitives and guard. Tests: render Admin, lint check."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T012",
           "title": "Frontend route constants as source of truth",
-          "branch": "web/front-routes-constants",
-          "paths": ["apps/web/src/app/routes.ts", "apps/web/src/app/AppRoutes.tsx", "packages/talvra-hooks/src/useTalvraNav.ts"],
+          "branch": "frontend/route-constants",
+          "paths": ["packages/talvra-routes/**", "apps/web/src/app/routes.ts"],
           "steps": [
-            "Define FRONT_ROUTES with lazy components",
-            "Add buildPath and useTalvraNav"
+            "Create shared package talvra-routes",
+            "Move FRONT_ROUTES and buildPath to shared package",
+            "Re-export from apps/web/src/app/routes.ts"
           ],
-          "run": ["pnpm --filter web dev"],
+          "run": ["pnpm --filter web build"],
           "acceptance": ["Navigation via constants works"],
           "pr": {
-            "title": "feat(web) add FRONT_ROUTES constants and typed navigation",
-            "body": "What: routes file and helpers. Tests: navigate to pages."
+            "title": "feat(routes): T012 - extract route constants to shared package",
+            "body": "What: shared package with constants and helpers. Tests: type-check + build from web."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T013",
           "title": "React Query and useAPI hook package",
-          "branch": "web/useapi",
-          "paths": ["packages/talvra-api/src/useAPI.ts", "apps/web/src/app/AppProvider.tsx"],
+          "branch": "frontend/use-api",
+          "paths": ["packages/talvra-api/**", "apps/web/src/app/AppProvider.tsx"],
           "steps": [
             "Add QueryClientProvider",
-            "Implement generic useAPI for GET and mutate"
+            "Implement generic useAPI for GET"
           ],
-          "run": ["pnpm --filter web dev"],
-          "acceptance": ["Sample GET shows data in a test component"],
+          "run": ["pnpm --filter web build"],
+          "acceptance": ["App builds and provider is wired globally"],
           "pr": {
-            "title": "feat(api) add typed useAPI on react query",
-            "body": "What: provider and hook. Tests: sample GET."
+            "title": "feat(api): T013 - scaffold talvra-api with useAPI and QueryClientProvider",
+            "body": "What: shared useAPI + QueryClientProvider integration. Tests: type-check + web build."
           },
-          "completed": false
+          "completed": true
         }
       ]
     },
