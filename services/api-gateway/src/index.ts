@@ -22,11 +22,22 @@ app.get('/health', async (req, reply) => {
   return { ok: true, request_id: requestId }
 })
 
+// Proxy to auth-service
+const AUTH_UPSTREAM_HOST = process.env.AUTH_SERVICE_HOST ?? '127.0.0.1'
+const AUTH_UPSTREAM_PORT = Number(process.env.AUTH_SERVICE_PORT ?? 4001)
+const AUTH_UPSTREAM = `http://${AUTH_UPSTREAM_HOST}:${AUTH_UPSTREAM_PORT}`
+
+await app.register((await import('@fastify/http-proxy')).default, {
+  upstream: AUTH_UPSTREAM,
+  prefix: '/api/auth',
+  rewritePrefix: '/auth'
+})
+
 const port = Number(process.env.API_GATEWAY_PORT ?? 3001)
 const host = String(process.env.API_GATEWAY_HOST ?? '0.0.0.0')
 app
   .listen({ port, host })
-  .then(() => app.log.info(`API Gateway listening on ${host}:${port}`))
+  .then(() => app.log.info(`API Gateway listening on ${host}:${port} (auth upstream: ${AUTH_UPSTREAM})`))
   .catch((err) => {
     app.log.error(err)
     process.exit(1)
