@@ -104,6 +104,19 @@ importers:
         specifier: ~5.8.3
         version: 5.8.3
 
+  packages/talvra-hooks:
+    dependencies:
+      react:
+        specifier: '>=18'
+        version: 19.1.1
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.11
+        version: 19.1.11
+      typescript:
+        specifier: ~5.8.3
+        version: 5.8.3
+
   packages/talvra-routes:
     devDependencies:
       '@types/node':
