@@ -17,6 +17,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@tanstack/react-query':
+        specifier: ^5.85.5
+        version: 5.85.5(react@19.1.1)
       react:
         specifier: ^19.1.1
         version: 19.1.1
@@ -33,6 +36,9 @@ importers:
       '@eslint/js':
         specifier: ^9.33.0
         version: 9.34.0
+      '@types/node':
+        specifier: ^20.19.11
+        version: 20.19.11
       '@types/react':
         specifier: ^19.1.10
         version: 19.1.11
@@ -81,6 +87,22 @@ importers:
       eslint:
         specifier: ^8.45.0
         version: 8.57.1
+
+  packages/talvra-api:
+    dependencies:
+      '@tanstack/react-query':
+        specifier: ^5.52.0
+        version: 5.85.5(react@19.1.1)
+      react:
+        specifier: '>=18'
+        version: 19.1.1
+      react-dom:
+        specifier: '>=18'
+        version: 19.1.1(react@19.1.1)
+    devDependencies:
+      typescript:
+        specifier: ~5.8.3
+        version: 5.8.3
 
   packages/talvra-routes:
     devDependencies:
@@ -572,6 +594,14 @@ packages:
     resolution: {integrity: sha512-sq0hHLTgdtwOPDB5SJOuaoHyiP1qSwg+71TQWk8iDS04bW1wIE0oQ6otPiRj2ZvLYNASLMaTp8QRGUVZ+5OL5A==}
     cpu: [x64]
     os: [win32]
+
+  '@tanstack/query-core@5.85.5':
+    resolution: {integrity: sha512-KO0WTob4JEApv69iYp1eGvfMSUkgw//IpMnq+//cORBzXf0smyRwPLrUvEe5qtAEGjwZTXrjxg+oJNP/C00t6w==}
+
+  '@tanstack/react-query@5.85.5':
+    resolution: {integrity: sha512-/X4EFNcnPiSs8wM2v+b6DqS5mmGeuJQvxBglmDxl6ZQb5V26ouD2SJYAcC3VjbNwqhY2zjxVD15rDA5nGbMn3A==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -1854,6 +1884,13 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.48.0':
     optional: true
+
+  '@tanstack/query-core@5.85.5': {}
+
+  '@tanstack/react-query@5.85.5(react@19.1.1)':
+    dependencies:
+      '@tanstack/query-core': 5.85.5
+      react: 19.1.1
 
   '@types/babel__core@7.20.5':
     dependencies:
