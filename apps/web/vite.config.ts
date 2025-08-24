@@ -1,17 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': '/src',
-      '@ui': '/packages/talvra-ui/src',
-      '@hooks': '/packages/talvra-hooks/src',
-      '@constants': '/packages/talvra-constants/src',
-      '@routes': '/packages/talvra-routes/src',
-      '@api': '/packages/talvra-api/src',
+      '@': path.resolve(__dirname, './src'),
+      '@ui': path.resolve(__dirname, '../../packages/talvra-ui/src'),
+      '@hooks': path.resolve(__dirname, '../../packages/talvra-hooks/src'),
+      '@constants': path.resolve(__dirname, '../../packages/talvra-constants/src'),
+      '@routes': path.resolve(__dirname, '../../packages/talvra-routes/src'),
+      '@api': path.resolve(__dirname, '../../packages/talvra-api/src'),
     },
   },
 })

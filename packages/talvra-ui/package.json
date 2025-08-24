@@ -1,0 +1,33 @@
+{
+  "name": "@talvra/ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared UI primitives for Talvra learning platform",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "echo 'Build placeholder - will be added in future'",
+    "dev": "echo 'Dev mode placeholder'",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "styled-components": "^6.1.8"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.15",
+    "@types/styled-components": "^5.1.26",
+    "react": "^18.2.0",
+    "eslint": "^8.45.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "styled-components": ">=5.0.0"
+  }
+}

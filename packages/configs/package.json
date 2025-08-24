@@ -8,5 +8,10 @@
     "*.json",
     "*.js",
     "*.cjs"
-  ]
+  ],
+  "devDependencies": {
+    "eslint": "^8.45.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  }
 }

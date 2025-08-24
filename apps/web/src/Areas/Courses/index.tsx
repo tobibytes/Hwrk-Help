@@ -1,40 +1,36 @@
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
+import { Surface, Stack, Text, Link, Card } from '@ui';
 
 export default function CoursesArea() {
   return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
-      <h1>Courses</h1>
-      <p>This will display the list of courses from Canvas integration.</p>
-      
-      <nav style={{ marginTop: '2rem' }}>
-        <h2>Navigation</h2>
-        <ul>
-          <li>
-            <a href={buildPath(FRONT_ROUTES.ADMIN)}>
+    <Surface padding="xl">
+      <Stack gap="lg">
+        <Text variant="h1">Courses</Text>
+        <Text>This will display the list of courses from Canvas integration.</Text>
+        
+        <Stack gap="sm">
+          <Text variant="h2">Navigation</Text>
+          <Stack gap="xs">
+            <Link href={buildPath(FRONT_ROUTES.ADMIN)}>
               {FRONT_ROUTES.ADMIN.name}
-            </a>
-          </li>
-          <li>
-            <a href={buildPath(FRONT_ROUTES.COURSES)}>
+            </Link>
+            <Link href={buildPath(FRONT_ROUTES.COURSES)}>
               {FRONT_ROUTES.COURSES.name}
-            </a>
-          </li>
-        </ul>
-      </nav>
+            </Link>
+          </Stack>
+        </Stack>
 
-      <div style={{ 
-        marginTop: '2rem', 
-        padding: '1rem', 
-        backgroundColor: '#e8f4fd', 
-        borderRadius: '4px' 
-      }}>
-        <h3>Coming in Future Tasks</h3>
-        <ul>
-          <li>T032: Frontend Courses list page</li>
-          <li>Canvas integration and course data display</li>
-          <li>Document management and study aids</li>
-        </ul>
-      </div>
-    </div>
+        <Card padding="sm">
+          <Stack gap="md">
+            <Text variant="h3">Coming in Future Tasks</Text>
+            <Stack gap="xs">
+              <Text>T032: Frontend Courses list page</Text>
+              <Text>Canvas integration and course data display</Text>
+              <Text>Document management and study aids</Text>
+            </Stack>
+          </Stack>
+        </Card>
+      </Stack>
+    </Surface>
   );
 }
