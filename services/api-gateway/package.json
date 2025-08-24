@@ -10,7 +10,8 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "fastify": "^4.26.2"
+    "fastify": "^5.0.0",
+    "@fastify/http-proxy": "^10.0.2"
   },
   "devDependencies": {
     "typescript": "~5.8.3",
