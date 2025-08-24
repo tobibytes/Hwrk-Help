@@ -13,10 +13,70 @@ This is a pnpm workspace monorepo with:
 ## Project Structure
 
 ```
-├── apps/                    # Application entrypoints
-│   └── web/                # React frontend app
-├── services/               # Backend microservices
-│   ├── api-gateway/       # Main API gateway (Node.js/TypeScript)
+├── frontend/               # Frontend workspace (pnpm)
+│   ├── web/               # React app
+│   └── packages/          # Frontend shared packages (@ui, @api, @routes, @hooks, @constants, configs)
+├── infra/                  # Local infrastructure (docker compose)
+├── services/               # Backend microservices (to be added)
+├── docs/                   # Documentation and process guides
+└── scripts/                # Repo-level scripts
+```
+
+## Path Aliases
+
+This project uses TypeScript path aliases for clean imports (frontend workspace):
+
+- `@/` - Root src directory (frontend/web/src)
+- `@ui` - UI primitives from `frontend/packages/talvra-ui`
+- `@hooks` - Shared hooks from `frontend/packages/talvra-hooks`
+- `@constants` - Tokens and constants from `frontend/packages/talvra-constants`
+- `@routes` - Route constants from `frontend/packages/talvra-routes`
+- `@api` - API hooks from `frontend/packages/talvra-api`
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js >=18
+- pnpm >=8
+- Docker and Docker Compose (for local services)
+
+### Installation
+
+1. Install frontend dependencies:
+```bash
+pnpm -C frontend install
+```
+
+2. Start local infrastructure (Postgres, Redis, Azurite):
+```bash
+docker compose -f infra/docker-compose.yml --env-file .env up -d
+```
+
+3. Run the development environment:
+
+Frontend:
+```bash
+pnpm -C frontend --filter web dev
+```
+
+### Available Commands
+
+- `pnpm -C frontend install` - Install frontend workspace dependencies
+- `pnpm -C frontend -r list` - List frontend workspace packages
+- `pnpm validate:process` - Validate process documentation (root)
+- `pnpm codegen` - Generate API types and routes (placeholder)
+
+## Development Workflow
+
+This project follows a structured task-based workflow. See `docs/tasks.json` for the complete build plan.
+
+Each task:
+1. Creates a feature branch
+2. Implements specific functionality
+3. Ensures the app remains runnable
+4. Opens a PR with proper documentation
+5. Passes CI checks before merge
 │   ├── auth-service/      # Authentication service (Node.js/TypeScript)
 │   ├── canvas-service/    # Canvas LMS integration (Node.js/TypeScript)
 │   ├── ingestion-service/ # Document processing (Python)
