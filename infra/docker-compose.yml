@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: talvra_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-talvra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-talvra}
+      POSTGRES_DB: ${POSTGRES_DB:-talvra}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: talvra_redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.30.0
+    container_name: talvra_azurite
+    command: ["azurite", "--blobHost", "0.0.0.0", "--location", "/data", "--debug", "/dev/null"]
+    ports:
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
+    volumes:
+      - azuritedata:/data
+
+volumes:
+  pgdata:
+  redisdata:
+  azuritedata:
