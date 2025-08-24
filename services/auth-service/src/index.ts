@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
+import '@fastify/cookie'
 import { Pool } from 'pg'
 import argon2 from 'argon2'
 import { randomBytes, createHash } from 'node:crypto'
@@ -46,7 +47,7 @@ async function bootstrapDb() {
   `)
 }
 
-await app.register(cookie, { secret: process.env.AUTH_COOKIE_SECRET ?? 'dev-secret' })
+await app.register(cookie as any, { secret: process.env.AUTH_COOKIE_SECRET ?? 'dev-secret' })
 
 app.post('/auth/signup', async (req, reply) => {
   const body = (req.body ?? {}) as { email?: string; password?: string }
