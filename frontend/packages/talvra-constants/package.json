@@ -1,0 +1,14 @@
+{
+  "name": "talvra-constants",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Design tokens and shared constants for Talvra frontend",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "devDependencies": {
+    "typescript": "~5.8.3"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  }
+}

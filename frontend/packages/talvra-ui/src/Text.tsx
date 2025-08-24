@@ -1,11 +1,13 @@
 import styled from 'styled-components';
 
+import type React from 'react';
+
 export interface TextProps {
   variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'small' | 'caption';
   color?: 'gray-900' | 'gray-700' | 'gray-500' | 'blue-600' | 'red-600';
   weight?: 'normal' | 'medium' | 'semibold' | 'bold';
   align?: 'left' | 'center' | 'right';
-  as?: keyof JSX.IntrinsicElements;
+  as?: keyof React.JSX.IntrinsicElements;
 }
 
 const variantStyles = {
