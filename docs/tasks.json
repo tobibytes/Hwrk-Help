@@ -130,6 +130,40 @@
             "body": "What: shared useAPI + QueryClientProvider integration. Tests: type-check + web build."
           },
           "completed": true
+        },
+        {
+          "id": "T014",
+          "title": "Shared hooks package",
+          "branch": "frontend/hooks",
+          "paths": ["packages/talvra-hooks/**", "web/vite.config.ts"],
+          "steps": [
+            "Scaffold talvra-hooks with useDebouncedValue, useEvent, useIsMounted",
+            "Fix Vite aliases to shared package index"
+          ],
+          "run": ["pnpm --filter web build"],
+          "acceptance": ["Web builds using @hooks alias"],
+          "pr": {
+            "title": "feat(hooks): T014 - scaffold talvra-hooks and fix Vite aliases",
+            "body": "What: hooks package and Vite alias fixes. Tests: build passes."
+          },
+          "completed": true
+        },
+        {
+          "id": "T015",
+          "title": "Design tokens and app constants",
+          "branch": "frontend/constants",
+          "paths": ["packages/talvra-constants/**", "web/src/app/AppProvider.tsx"],
+          "steps": [
+            "Scaffold talvra-constants with tokens and app constants",
+            "Compose app theme using @ui theme + @constants tokens"
+          ],
+          "run": ["pnpm --filter web build"],
+          "acceptance": ["Build passes with tokens consumed in app theme"],
+          "pr": {
+            "title": "feat(constants): T015 - add talvra-constants and compose app theme with tokens",
+            "body": "What: tokens package and theme composition. Tests: build passes."
+          },
+          "completed": true
         }
       ]
     },
