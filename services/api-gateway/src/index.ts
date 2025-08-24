@@ -22,10 +22,11 @@ app.get('/health', async (req, reply) => {
   return { ok: true, request_id: requestId }
 })
 
-const port = Number(process.env.PORT ?? 3001)
+const port = Number(process.env.API_GATEWAY_PORT ?? 3001)
+const host = String(process.env.API_GATEWAY_HOST ?? '0.0.0.0')
 app
-  .listen({ port, host: '0.0.0.0' })
-  .then(() => app.log.info(`API Gateway listening on :${port}`))
+  .listen({ port, host })
+  .then(() => app.log.info(`API Gateway listening on ${host}:${port}`))
   .catch((err) => {
     app.log.error(err)
     process.exit(1)
