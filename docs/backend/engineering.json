@@ -1,0 +1,472 @@
+{
+  "backend_technical": {
+    "principles": [
+      "Microservices are replaceable and testable",
+      "No ORM, raw SQL with migrations",
+      "Files target 100 lines, split aggressively",
+      "Strict typing and explicit contracts",
+      "All externals behind adapters with fakes for tests",
+      "Config from env, wired through docker compose",
+      "Aliases use @ for imports where supported"
+    ],
+    "stack": {
+      "languages": {
+        "api_gateway": "Node TypeScript",
+        "auth_service": "Node TypeScript",
+        "canvas_service": "Node TypeScript",
+        "ingestion_service": "Python",
+        "ai_service": "Python",
+        "media_service": "Python",
+        "notification_service": "Node TypeScript",
+        "logging_service": "Go or Rust"
+      },
+      "infra": {
+        "database": "Neon Postgres",
+        "storage": "Azure Blob Storage",
+        "queue": "Redis Streams",
+        "search": "RediSearch optional"
+      },
+      "ports": {
+        "api_gateway": 3001,
+        "auth": 4001,
+        "canvas": 4002,
+        "ingestion": 4003,
+        "ai": 4004,
+        "media": 4005,
+        "notification": 4006,
+        "logging": 4010
+      }
+    },
+    "repo_layout": {
+      "root": [
+        "services/* per microservice",
+        "packages/backend-configs for shared lint and tsconfig and py configs",
+        "packages/backend-shared for small cross service utils",
+        "infra/docker-compose.yml and local dev deps",
+        "migrations/<bounded_context>/*.sql",
+        "docs/backend/*.md"
+      ],
+      "service_folder": [
+        "src/app http handlers or cli",
+        "src/domain use cases and pure logic",
+        "src/infra adapters db and blob and queue and http",
+        "src/contracts request and response types and validators",
+        "src/tests unit and contract"
+      ]
+    },
+    "env": {
+      "global": ["POSTGRES_URL", "REDIS_URL", "AZURE_STORAGE_CONNECTION_STRING", "LOG_LEVEL"],
+      "auth": ["JWT_SECRET", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+      "canvas": ["CANVAS_BASE_URL", "CANVAS_CLIENT_ID", "CANVAS_CLIENT_SECRET"],
+      "ai": ["OPENAI_API_KEY"],
+      "media": ["TTS_PROVIDER", "ELEVENLABS_API_KEY", "AWS_POLLY_REGION", "FFMPEG_PATH"],
+      "notification": ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"]
+    },
+    "database": {
+      "rules": [
+        "One migration folder per bounded context",
+        "Use UUID v4 ids",
+        "Add explicit indexes",
+        "Prefer JSONB for flexible AI payloads"
+      ],
+      "tables": [
+        {
+          "name": "users",
+          "columns": [
+            {"name": "id", "type": "uuid primary key"},
+            {"name": "school_email", "type": "text unique not null"},
+            {"name": "password_hash", "type": "text"},
+            {"name": "google_id", "type": "text unique"},
+            {"name": "canvas_user_id", "type": "text unique"},
+            {"name": "created_at", "type": "timestamp default now()"},
+            {"name": "updated_at", "type": "timestamp default now()"}
+          ]
+        },
+        {
+          "name": "sessions",
+          "columns": [
+            {"name": "id", "type": "uuid primary key"},
+            {"name": "user_id", "type": "uuid references users(id) on delete cascade"},
+            {"name": "token", "type": "text unique not null"},
+            {"name": "expires_at", "type": "timestamp not null"},
+            {"name": "created_at", "type": "timestamp default now()"}
+          ],
+          "indexes": ["user_id"]
+        },
+        {
+          "name": "canvas_courses",
+          "columns": [
+            {"name": "id", "type": "uuid primary key"},
+            {"name": "user_id", "type": "uuid references users(id) on delete cascade"},
+            {"name": "canvas_course_id", "type": "text"},
+            {"name": "name", "type": "text"},
+            {"name": "term", "type": "text"},
+            {"name": "start_date", "type": "date"},
+            {"name": "end_date", "type": "date"}
+          ],
+          "indexes": ["user_id"]
+        },
+        {
+          "name": "canvas_assignments",
+          "columns": [
+            {"name": "id", "type": "uuid primary key"},
+            {"name": "course_id", "type": "uuid references canvas_courses(id) on delete cascade"},
+            {"name": "canvas_assignment_id", "type": "text"},
+            {"name": "title", "type": "text"},
+            {"name": "due_at", "type": "timestamp"},
+            {"name": "status", "type": "text"}
+          ],
+          "indexes": ["course_id", "due_at"]
+        },
+        {
+          "name": "documents",
+          "columns": [
+            {"name": "id", "type": "uuid primary key"},
+            {"name": "user_id", "type": "uuid references users(id) on delete cascade"},
+            {"name": "course_id", "type": "uuid references canvas_courses(id)"},
+            {"name": "title", "type": "text"},
+            {"name": "kind", "type": "text"},
+            {"name": "blob_url", "type": "text"},
+            {"name": "markdown_url", "type": "text"},
+            {"name": "json_url", "type": "text"},
+            {"name": "created_at", "type": "timestamp default now()"}
+          ],
+          "indexes": ["user_id"]
+        },
+        {
+          "name": "notes",
+          "columns": [
+            {"name": "id", "type": "uuid primary key"},
+            {"name": "doc_id", "type": "uuid references documents(id) on delete cascade"},
+            {"name": "markdown_url", "type": "text"},
+            {"name": "summary", "type": "jsonb"},
+            {"name": "created_at", "type": "timestamp default now()"}
+          ],
+          "indexes": ["doc_id"]
+        },
+        {
+          "name": "flashcards",
+          "columns": [
+            {"name": "id", "type": "uuid primary key"},
+            {"name": "doc_id", "type": "uuid references documents(id) on delete cascade"},
+            {"name": "cards", "type": "jsonb"}
+          ],
+          "indexes": ["doc_id"]
+        },
+        {
+          "name": "media_assets",
+          "columns": [
+            {"name": "id", "type": "uuid primary key"},
+            {"name": "doc_id", "type": "uuid references documents(id) on delete cascade"},
+            {"name": "kind", "type": "text"},
+            {"name": "blob_url", "type": "text"},
+            {"name": "thumbnail_url", "type": "text"}
+          ],
+          "indexes": ["doc_id"]
+        },
+        {
+          "name": "logs",
+          "columns": [
+            {"name": "id", "type": "uuid primary key"},
+            {"name": "ts", "type": "timestamp default now()"},
+            {"name": "service", "type": "text"},
+            {"name": "level", "type": "text"},
+            {"name": "message", "type": "text"},
+            {"name": "context", "type": "jsonb"}
+          ],
+          "indexes": ["ts"]
+        }
+      ]
+    },
+    "storage": {
+      "containers": ["raw", "derived", "media"],
+      "paths": {
+        "raw": "raw/{user_id}/{doc_id}/{original_filename}",
+        "derived_md": "derived/{user_id}/{doc_id}/{artifact}.md",
+        "derived_json": "derived/{user_id}/{doc_id}/structure.json",
+        "media": "media/{user_id}/{doc_id}/{asset_id}.{ext}",
+        "thumb": "media/{user_id}/{doc_id}/thumb_{asset_id}.jpg"
+      },
+      "access": [
+        "Services request short lived SAS for read or write",
+        "Clients receive signed urls only"
+      ]
+    },
+    "messaging": {
+      "streams": [
+        "ingest.request",
+        "ingest.result",
+        "ai.request",
+        "ai.result",
+        "media.request",
+        "media.result",
+        "notify.request"
+      ],
+      "consumer_groups": {
+        "ingestion": "ingestion:group",
+        "ai": "ai:group",
+        "media": "media:group",
+        "notify": "notify:group"
+      },
+      "contracts": {
+        "ingest.request": {
+          "user_id": "uuid",
+          "doc_id": "uuid",
+          "source": "canvas or upload",
+          "file_url": "blob url",
+          "kind": "pdf or docx or pptx"
+        },
+        "ai.request": {
+          "user_id": "uuid",
+          "doc_id": "uuid",
+          "markdown_url": "blob url",
+          "json_url": "blob url"
+        },
+        "media.request": {
+          "user_id": "uuid",
+          "doc_id": "uuid",
+          "script": "string",
+          "assets": ["blob url"]
+        }
+      },
+      "idempotency": [
+        "Use doc_id as natural id",
+        "Upsert by doc_id in workers"
+      ],
+      "retry": [
+        "Use XCLAIM after visibility timeout",
+        "Dead letter per stream after N failures"
+      ]
+    },
+    "services": [
+      {
+        "name": "API Gateway",
+        "language": "Node TypeScript",
+        "port": 3001,
+        "responsibilities": [
+          "Session check with Auth Service",
+          "Proxy and small aggregation",
+          "Rate limit and request id"
+        ],
+        "headers_out": ["X-Request-Id", "X-User-Id", "X-Service-Token"],
+        "routes": [
+          {"method": "GET", "path": "/health", "auth": false},
+          {"method": "ANY", "path": "/auth/*", "auth": false},
+          {"method": "ANY", "path": "/canvas/*", "auth": true},
+          {"method": "ANY", "path": "/ingestion/*", "auth": true},
+          {"method": "ANY", "path": "/ai/*", "auth": true},
+          {"method": "ANY", "path": "/media/*", "auth": true},
+          {"method": "ANY", "path": "/notify/*", "auth": true},
+          {"method": "GET", "path": "/search", "auth": true}
+        ]
+      },
+      {
+        "name": "Auth Service",
+        "language": "Node TypeScript",
+        "port": 4001,
+        "routes": [
+          {"method": "POST", "path": "/auth/signup"},
+          {"method": "POST", "path": "/auth/login"},
+          {"method": "GET", "path": "/auth/oauth/google/start"},
+          {"method": "GET", "path": "/auth/oauth/google/callback"},
+          {"method": "POST", "path": "/auth/logout"},
+          {"method": "GET", "path": "/auth/session"}
+        ],
+        "security": [
+          "Argon2id password hashing",
+          "HttpOnly cookie sessions",
+          "Lockout and rate limit on failures"
+        ]
+      },
+      {
+        "name": "Canvas Service",
+        "language": "Node TypeScript",
+        "port": 4002,
+        "routes": [
+          {"method": "POST", "path": "/canvas/connect"},
+          {"method": "POST", "path": "/canvas/sync"},
+          {"method": "GET", "path": "/canvas/courses"},
+          {"method": "GET", "path": "/canvas/assignments"}
+        ],
+        "behavior": [
+          "OAuth2 to Canvas, store tokens encrypted",
+          "Sync courses and assignments and module items",
+          "Emit ingest.request for new files"
+        ]
+      },
+      {
+        "name": "Ingestion Service",
+        "language": "Python",
+        "port": 4003,
+        "routes": [
+          {"method": "POST", "path": "/ingestion/start"},
+          {"method": "GET", "path": "/documents/:id"}
+        ],
+        "workers": [
+          "Normalize legacy formats with LibreOffice headless",
+          "Extract text and media",
+          "Write markdown and structure json to Blob",
+          "Upsert documents row"
+        ],
+        "json_shape_example": {
+          "title": "string",
+          "sections": [
+            {
+              "heading": "string",
+              "text": "string",
+              "media": [{"type": "image or audio or video", "url": "blob url", "alt": "optional"}],
+              "source": {"kind": "pdf or docx or pptx", "page": 3}
+            }
+          ]
+        }
+      },
+      {
+        "name": "AI Service",
+        "language": "Python",
+        "port": 4004,
+        "routes": [
+          {"method": "POST", "path": "/ai/start"},
+          {"method": "GET", "path": "/notes/:doc_id"},
+          {"method": "GET", "path": "/flashcards/:doc_id"}
+        ],
+        "workers": [
+          "Generate summaries to notes.summary jsonb and markdown_url",
+          "Generate slides markdown",
+          "Generate flashcards jsonb"
+        ],
+        "validation": ["Validate prompt outputs to deterministic schemas"]
+      },
+      {
+        "name": "Media Service",
+        "language": "Python",
+        "port": 4005,
+        "routes": [
+          {"method": "POST", "path": "/media/start"},
+          {"method": "GET", "path": "/media/:doc_id"}
+        ],
+        "workers": [
+          "TTS via provider adapter",
+          "Compose video with ffmpeg",
+          "Store mp4 and thumbnail"
+        ]
+      },
+      {
+        "name": "Notification Service",
+        "language": "Node TypeScript",
+        "port": 4006,
+        "routes": [
+          {"method": "POST", "path": "/notify/test"},
+          {"method": "POST", "path": "/notify/schedule"},
+          {"method": "GET", "path": "/notify/status/:id"}
+        ],
+        "workers": [
+          "Read assignments due_at",
+          "Schedule reminders",
+          "Send via SMTP or push provider"
+        ]
+      },
+      {
+        "name": "Logging Service",
+        "language": "Go or Rust",
+        "port": 4010,
+        "routes": [
+          {"method": "POST", "path": "/logs"},
+          {"method": "GET", "path": "/logs/query"}
+        ],
+        "storage": ["Insert into logs table", "Consider partitions later"]
+      }
+    ],
+    "security": {
+      "rules": [
+        "Secrets only in env and secret manager",
+        "Encrypt Canvas tokens with AES GCM",
+        "HttpOnly SameSite Lax cookies, Secure in prod",
+        "Validate inbound JSON with zod or pydantic",
+        "Strict CORS at gateway",
+        "Rate limit login and sync and heavy endpoints"
+      ]
+    },
+    "observability": {
+      "log_format_example": {
+        "ts": "2025-01-01T12:34:56Z",
+        "service": "ingestion",
+        "level": "info",
+        "message": "extracted markdown",
+        "context": {"doc_id": "uuid", "duration_ms": 842}
+      },
+      "health": {"route": "/health", "body": {"ok": true, "uptime_ms": "<number>", "version": "<semver>"}}
+    },
+    "testing": {
+      "unit": [
+        "Domain and adapters use fakes for db and blob and queue and http",
+        "No network in unit tests"
+      ],
+      "contract": [
+        "Validate request and response shapes per endpoint",
+        "Validate stream messages on publish and consume"
+      ],
+      "integration": [
+        "Compose up Postgres and Redis and Azurite",
+        "Start a subset of services and run end to end",
+        "Mock Canvas with fixtures or a stub server"
+      ],
+      "fixtures": ["Sample PDF and DOCX and PPTX in test assets"],
+      "ci": ["Lint and type check and unit and contract and integration", "Build images and optional smoke compose up"]
+    },
+    "versioning": {
+      "http_prefix": "/v1",
+      "compat": ["Add fields in a backward compatible way", "Forward only migrations and backfill jobs if needed"]
+    },
+    "codegen": {
+      "backend_to_frontend": [
+        "API Gateway serves OpenAPI at /openapi.json",
+        "Script generates typed clients and route constants for frontend"
+      ]
+    },
+    "performance_targets": {
+      "api_p95_ms": 300,
+      "first_note_for_10_page_pdf_sec": 90,
+      "reminder_enqueue_sec": 1
+    },
+    "error_model": {
+      "shape": {
+        "error": {
+          "code": "string",
+          "message": "human readable",
+          "details": {"field": "info"},
+          "request_id": "uuid"
+        }
+      },
+      "codes": ["UNAUTHENTICATED", "FORBIDDEN", "NOT_FOUND", "INVALID_ARGUMENT", "CONFLICT", "RATE_LIMITED", "INTERNAL"]
+    },
+    "delivery_rules_for_ai_agent": {
+      "branching": "Create branch per task phaseX/task-name",
+      "pull_request": [
+        "What changed",
+        "Why it changed",
+        "How it was tested",
+        "Results and logs or screenshots"
+      ]
+    },
+    "phasing": [
+      "Phase 1 Auth and Gateway with health",
+      "Phase 2 Canvas connect and sync",
+      "Phase 3 Ingestion PDF and DOCX and PPTX to markdown plus json",
+      "Phase 4 AI summaries and slides and flashcards with mocked LLM",
+      "Phase 5 Media MP4 basics",
+      "Phase 6 Reminders",
+      "Phase 7 Logs and dashboards"
+    ],
+    "runbook": {
+      "reprocess_document": ["Publish ingest.request with same doc_id", "Workers are idempotent"],
+      "reset_consumer": ["XAUTOCLAIM older than timeout to a fresh consumer"],
+      "rotate_secret": ["Update env and restart service", "Rotate sessions on next login"],
+      "purge_old_logs": ["Delete from logs where ts older than 90 days"]
+    },
+    "guardrails": [
+      "No auto submission to Canvas",
+      "AI outputs are advisory",
+      "Respect Canvas API terms"
+    ]
+  }
+}
