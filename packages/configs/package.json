@@ -1,0 +1,12 @@
+{
+  "name": "@talvra/configs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared configuration files for the Talvra workspace",
+  "main": "index.js",
+  "files": [
+    "*.json",
+    "*.js",
+    "*.cjs"
+  ]
+}

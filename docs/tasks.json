@@ -77,7 +77,7 @@
             "title": "feat(web) scaffold Vite app with Areas and routes skeleton",
             "body": "What: Vite app, routes, Areas. Tests: dev server shows Admin."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T011",
