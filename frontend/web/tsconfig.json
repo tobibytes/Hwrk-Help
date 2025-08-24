@@ -2,6 +2,11 @@
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
+    { "path": "./tsconfig.node.json" },
+    { "path": "../packages/talvra-constants" },
+    { "path": "../packages/talvra-ui" },
+    { "path": "../packages/talvra-api" },
+    { "path": "../packages/talvra-hooks" },
+    { "path": "../packages/talvra-routes" }
   ]
 }

@@ -12,6 +12,7 @@ export default defineConfig({
       '@hooks': path.resolve(__dirname, '../packages/talvra-hooks/src'),
       '@routes': path.resolve(__dirname, '../packages/talvra-routes/src'),
       '@api': path.resolve(__dirname, '../packages/talvra-api/src'),
+      '@constants': path.resolve(__dirname, '../packages/talvra-constants/src'),
     },
   },
   server: {
