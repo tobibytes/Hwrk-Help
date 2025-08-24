@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import httpProxy from '@fastify/http-proxy'
+import cors from '@fastify/cors'
 import { randomUUID } from 'node:crypto'
 
 const app = Fastify({ logger: true })
@@ -11,6 +12,14 @@ app.addHook('onRequest', async (req, reply) => {
   reply.header('x-request-id', reqId)
 })
 
+// CORS for browser requests
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'
+await app.register(cors as any, {
+  origin: FRONTEND_ORIGIN,
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['content-type', 'x-request-id']
+})
 
 // Root route (smoke)
 app.get('/', async () => {
