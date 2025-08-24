@@ -89,6 +89,31 @@ app.get('/auth/session', async (req, reply) => {
   return { ok: true, user_id: (rows[0] as { user_id: string }).user_id }
 })
 
+// Current user info
+app.get('/auth/me', async (req, reply) => {
+  const sid = (req.cookies ?? {})[SESSION_COOKIE]
+  if (!sid) return reply.code(401).send({ error: { code: 'UNAUTHENTICATED', message: 'missing session' } })
+
+  const { rows } = await pool.query(
+    'SELECT u.id, u.email, u.google_sub, u.created_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = $1',
+    [sid]
+  )
+  if (rows.length === 0) return reply.code(401).send({ error: { code: 'UNAUTHENTICATED', message: 'invalid session' } })
+
+  const u = rows[0] as { id: string; email: string; google_sub: string | null; created_at: string }
+  return { ok: true, user: { id: u.id, email: u.email, google_sub: u.google_sub, created_at: u.created_at } }
+})
+
+// Logout (clear session)
+app.post('/auth/logout', async (req, reply) => {
+  const sid = (req.cookies ?? {})[SESSION_COOKIE]
+  if (sid) {
+    await pool.query('DELETE FROM sessions WHERE id = $1', [sid])
+    reply.clearCookie(SESSION_COOKIE, { path: '/' })
+  }
+  return { ok: true }
+})
+
 // Google OAuth - start
 app.get('/auth/google/start', async (req, reply) => {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return reply.code(500).send({ error: { code: 'INTERNAL', message: 'Google OAuth not configured' } })
