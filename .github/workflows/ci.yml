@@ -32,5 +32,8 @@ jobs:
         working-directory: frontend
         run: pnpm -r list
 
+      - name: Install root dev dependencies (for validation)
+        run: pnpm install --no-frozen-lockfile
+
       - name: Validate process handbook (root)
         run: pnpm run validate:process
