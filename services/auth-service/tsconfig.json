@@ -1,0 +1,13 @@
+{
+  "extends": "../../frontend/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false,
+    "declaration": false,
+    "module": "ESNext",
+    "target": "ES2022",
+    "allowImportingTsExtensions": false
+  },
+  "include": ["src/**/*"]
+}
