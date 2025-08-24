@@ -1,36 +1,36 @@
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
-import { Surface, Stack, Text, Link, Card } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard } from '@ui';
 
 export default function CoursesArea() {
   return (
-    <Surface padding="xl">
-      <Stack gap="lg">
-        <Text variant="h1">Courses</Text>
-        <Text>This will display the list of courses from Canvas integration.</Text>
+    <TalvraSurface>
+      <TalvraStack>
+        <TalvraText as="h1">Courses</TalvraText>
+        <TalvraText>This will display the list of courses from Canvas integration.</TalvraText>
         
-        <Stack gap="sm">
-          <Text variant="h2">Navigation</Text>
-          <Stack gap="xs">
-            <Link href={buildPath(FRONT_ROUTES.ADMIN)}>
+        <TalvraStack>
+          <TalvraText as="h2">Navigation</TalvraText>
+          <TalvraStack>
+            <TalvraLink href={buildPath(FRONT_ROUTES.ADMIN)}>
               {FRONT_ROUTES.ADMIN.name}
-            </Link>
-            <Link href={buildPath(FRONT_ROUTES.COURSES)}>
+            </TalvraLink>
+            <TalvraLink href={buildPath(FRONT_ROUTES.COURSES)}>
               {FRONT_ROUTES.COURSES.name}
-            </Link>
-          </Stack>
-        </Stack>
+            </TalvraLink>
+          </TalvraStack>
+        </TalvraStack>
 
-        <Card padding="sm">
-          <Stack gap="md">
-            <Text variant="h3">Coming in Future Tasks</Text>
-            <Stack gap="xs">
-              <Text>T032: Frontend Courses list page</Text>
-              <Text>Canvas integration and course data display</Text>
-              <Text>Document management and study aids</Text>
-            </Stack>
-          </Stack>
-        </Card>
-      </Stack>
-    </Surface>
+        <TalvraCard>
+          <TalvraStack>
+            <TalvraText as="h3">Coming in Future Tasks</TalvraText>
+            <TalvraStack>
+              <TalvraText>T032: Frontend Courses list page</TalvraText>
+              <TalvraText>Canvas integration and course data display</TalvraText>
+              <TalvraText>Document management and study aids</TalvraText>
+            </TalvraStack>
+          </TalvraStack>
+        </TalvraCard>
+      </TalvraStack>
+    </TalvraSurface>
   );
 }

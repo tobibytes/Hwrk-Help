@@ -16,18 +16,18 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
-    "styled-components": "^6.1.8"
+    "styled-components": "^6.1.19"
   },
   "devDependencies": {
-    "@types/react": "^18.2.15",
-    "@types/styled-components": "^5.1.26",
-    "react": "^18.2.0",
+    "@types/react": "^19.1.10",
+    "@types/styled-components": "^5.1.34",
+    "react": "^19.1.1",
     "eslint": "^8.45.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0"
   },
   "peerDependencies": {
-    "react": ">=18.0.0",
-    "styled-components": ">=5.0.0"
+    "react": ">=19.0.0",
+    "styled-components": ">=6.0.0"
   }
 }
