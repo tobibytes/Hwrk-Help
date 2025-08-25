@@ -5,10 +5,14 @@ import { useState } from 'react';
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
 
 async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { ...(init?.headers as any) };
+  if (init?.body && !Object.keys(headers).some((k) => k.toLowerCase() === 'content-type')) {
+    headers['content-type'] = 'application/json';
+  }
   const res = await fetch(url, {
     credentials: 'include',
-    headers: { 'content-type': 'application/json' },
     ...init,
+    headers,
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');

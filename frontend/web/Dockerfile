@@ -1,26 +1,28 @@
 # syntax=docker/dockerfile:1.8
 
 FROM node:20-alpine AS base
-WORKDIR /app
+WORKDIR /app/frontend
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@10.15.0 --activate
 
-# Install deps
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY frontend/web/package.json frontend/web/
-COPY frontend/packages/talvra-ui/package.json frontend/packages/talvra-ui/
-COPY frontend/packages/talvra-hooks/package.json frontend/packages/talvra-hooks/
-COPY frontend/packages/talvra-api/package.json frontend/packages/talvra-api/
-COPY frontend/packages/talvra-routes/package.json frontend/packages/talvra-routes/
-COPY frontend/packages/talvra-constants/package.json frontend/packages/talvra-constants/
+# Install deps for the standalone frontend workspace
+COPY frontend/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY frontend/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY frontend/web/package.json ./web/package.json
+COPY frontend/packages/talvra-ui/package.json ./packages/talvra-ui/package.json
+COPY frontend/packages/talvra-hooks/package.json ./packages/talvra-hooks/package.json
+COPY frontend/packages/talvra-api/package.json ./packages/talvra-api/package.json
+COPY frontend/packages/talvra-routes/package.json ./packages/talvra-routes/package.json
+COPY frontend/packages/talvra-constants/package.json ./packages/talvra-constants/package.json
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --filter web... --frozen-lockfile=false
 
 # Build web
 FROM base AS build
-COPY frontend/ frontend/
-RUN pnpm -C frontend/web vite build
+WORKDIR /app/frontend
+COPY frontend/ ./
+RUN pnpm -C web build
 
 # Nginx to serve static
 FROM nginx:1.27-alpine AS runner

@@ -6,12 +6,7 @@ export interface TalvraTextProps extends HTMLAttributes<HTMLElement> {
   as?: 'p' | 'span' | 'div' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 }
 
-export const TalvraText = styled.div.withConfig({
-  // Match styled-components signature: (prop, defaultValidatorFn)
-  shouldForwardProp: (prop: string | number, defaultValidatorFn: (prop: string | number) => boolean) => {
-    return defaultValidatorFn(prop) && prop !== 'as'
-  },
-})<TalvraTextProps>`
+export const TalvraText = styled.div<TalvraTextProps>`
   /* Basic text with semantic styling based on 'as' prop */
   display: block;
   margin: 0;
