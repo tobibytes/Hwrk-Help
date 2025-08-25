@@ -289,7 +289,7 @@
             "title": "feat(web) courses list using useAPI and route constants",
             "body": "What: hook and list. Tests: manual route visit."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T033",
