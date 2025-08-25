@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: talvra_postgres
     environment:
-      POSTGRES_USER: talvra
-      POSTGRES_PASSWORD: talvra
-      POSTGRES_DB: talvra
+      POSTGRES_USER: "${POSTGRES_USER:-talvra}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-talvra}"
+      POSTGRES_DB: "${POSTGRES_DB:-talvra}"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -33,7 +33,7 @@ services:
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:3.30.0
     container_name: talvra_azurite
-    command: ["azurite", "--blobHost", "0.0.0.0", "--location", "/data", "--debug", "/dev/null"]
+    command: ["azurite", "--blobHost", "0.0.0.0", "--location", "/data", "--debug", "/dev/null", "--skipApiVersionCheck"]
     ports:
       - "${AZURITE_BLOB_PORT:-10000}:10000"
     volumes:
@@ -44,18 +44,8 @@ services:
       context: ..
       dockerfile: services/auth-service/Dockerfile
     container_name: talvra_auth_service
-    environment:
-      DATABASE_URL: postgresql://talvra:talvra@postgres:5432/talvra
-      AUTH_SERVICE_HOST: 0.0.0.0
-      AUTH_SERVICE_PORT: 4001
-      AUTH_SESSION_COOKIE: talvra.sid
-      AUTH_COOKIE_SECRET: ${AUTH_COOKIE_SECRET:-dev-secret}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3001/api/auth/google/callback}
-      AUTH_GOOGLE_SCOPES: ${AUTH_GOOGLE_SCOPES:-openid email profile}
-      AUTH_GOOGLE_ALLOWED_HD: ${AUTH_GOOGLE_ALLOWED_HD:-morgan.edu}
-      CANVAS_TOKEN_SECRET: ${CANVAS_TOKEN_SECRET:-dev-canvas-secret}
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_started
@@ -68,11 +58,8 @@ services:
       context: ..
       dockerfile: services/api-gateway/Dockerfile
     container_name: talvra_api_gateway
-    environment:
-      API_GATEWAY_HOST: 0.0.0.0
-      API_GATEWAY_PORT: 3001
-      AUTH_SERVICE_URL: http://auth-service:4001
-      FRONTEND_ORIGIN: http://localhost:5173
+    env_file:
+      - .env
     depends_on:
       auth-service:
         condition: service_started
@@ -85,24 +72,35 @@ services:
       context: ..
       dockerfile: frontend/web/Dockerfile
     container_name: talvra_web
+    env_file:
+      - .env
     depends_on:
       api-gateway:
         condition: service_started
     ports:
       - "5173:5173"
 
+  ingestion-service:
+    build:
+      context: ..
+      dockerfile: services/ingestion-service/Dockerfile
+    container_name: talvra_ingestion_service
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "4010:4010"
+
   canvas-service:
     build:
       context: ..
       dockerfile: services/canvas-service/Dockerfile
     container_name: talvra_canvas_service
-    environment:
-      CANVAS_SERVICE_HOST: 0.0.0.0
-      CANVAS_SERVICE_PORT: 4002
-      CANVAS_DATABASE_URL: postgresql://talvra:talvra@postgres:5432/talvra
-      PGHOST: postgres
-      CANVAS_TOKEN_SECRET: ${CANVAS_TOKEN_SECRET:-dev-canvas-secret}
-      CANVAS_BASE_URL: ${CANVAS_BASE_URL:-}
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_started

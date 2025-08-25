@@ -12,7 +12,8 @@
     "fastify": "^4.29.1",
     "ioredis": "^5.4.1",
     "mammoth": "^1.6.0",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "@azure/storage-blob": "^12.23.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.11",
