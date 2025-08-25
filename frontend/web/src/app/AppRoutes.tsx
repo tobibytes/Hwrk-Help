@@ -6,6 +6,7 @@ import CoursesArea from '@/Areas/Courses';
 import SettingsArea from '@/Areas/Settings';
 import DocumentsArea from '@/Areas/Documents';
 import DocumentDetailArea from '@/Areas/Documents/Detail';
+import DocumentAIArea from '@/Areas/Documents/AI';
 
 // Create router configuration
 const router = createBrowserRouter([
@@ -54,6 +55,14 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<div>Loading...</div>}>
         <DocumentDetailArea />
+      </Suspense>
+    ),
+  },
+  {
+    path: buildPath(FRONT_ROUTES.DOCUMENT_AI, { documentId: ':documentId' }),
+    element: (
+      <Suspense fallback={<div>Loading...</div>}>
+        <DocumentAIArea />
       </Suspense>
     ),
   },
