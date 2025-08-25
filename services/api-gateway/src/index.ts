@@ -66,7 +66,15 @@ const INGEST_UPSTREAM = process.env.INGESTION_SERVICE_URL ?? INGEST_UPSTREAM_DEF
 await app.register(httpProxy as any, {
   upstream: INGEST_UPSTREAM,
   prefix: '/api/ingestion',
-  rewritePrefix: '/ingestion'
+  rewritePrefix: '/ingestion',
+  rewriteHeaders: (headers: Record<string, string>, req: any) => {
+    const origin = req.headers?.origin
+    if (origin && origin === FRONTEND_ORIGIN) {
+      headers['access-control-allow-origin'] = origin
+      headers['access-control-allow-credentials'] = 'true'
+    }
+    return headers
+  }
 })
 
 const port = Number(process.env.API_GATEWAY_PORT ?? 3001)

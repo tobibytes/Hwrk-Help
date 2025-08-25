@@ -6,11 +6,9 @@ export class AzureBlobProvider implements StorageProvider {
   private client: BlobServiceClient
 
   constructor(connectionString: string, containerName: string) {
-    const serviceVersion = process.env.AZURE_BLOB_SERVICE_VERSION as any | undefined
-    this.client = BlobServiceClient.fromConnectionString(
-      connectionString,
-      serviceVersion ? { serviceVersion } : undefined,
-    )
+    // Note: fromConnectionString does not accept a serviceVersion option in this SDK version.
+    // Azurite compatibility is handled via compose flag --skipApiVersionCheck.
+    this.client = BlobServiceClient.fromConnectionString(connectionString)
     this.containerName = containerName
   }
 
