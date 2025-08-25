@@ -77,6 +77,26 @@ await app.register(httpProxy as any, {
   }
 })
 
+// Proxy to media-service
+const MEDIA_UPSTREAM_HOST = process.env.MEDIA_SERVICE_HOST ?? 'media-service'
+const MEDIA_UPSTREAM_PORT = Number(process.env.MEDIA_SERVICE_PORT ?? 4030)
+const MEDIA_UPSTREAM_DEFAULT = `http://${MEDIA_UPSTREAM_HOST}:${MEDIA_UPSTREAM_PORT}`
+const MEDIA_UPSTREAM = process.env.MEDIA_SERVICE_URL ?? MEDIA_UPSTREAM_DEFAULT
+
+await app.register(httpProxy as any, {
+  upstream: MEDIA_UPSTREAM,
+  prefix: '/api/media',
+  rewritePrefix: '/media',
+  rewriteHeaders: (headers: Record<string, string>, req: any) => {
+    const origin = req.headers?.origin
+    if (origin && origin === FRONTEND_ORIGIN) {
+      headers['access-control-allow-origin'] = origin
+      headers['access-control-allow-credentials'] = 'true'
+    }
+    return headers
+  }
+})
+
 const port = Number(process.env.API_GATEWAY_PORT ?? 3001)
 const host = String(process.env.API_GATEWAY_HOST ?? '0.0.0.0')
 app
