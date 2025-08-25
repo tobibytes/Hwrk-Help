@@ -20,7 +20,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # Build web
 FROM base AS build
 COPY frontend/ frontend/
-RUN pnpm -C frontend/web build
+RUN pnpm -C frontend/web vite build
 
 # Nginx to serve static
 FROM nginx:1.27-alpine AS runner
