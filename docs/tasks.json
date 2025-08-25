@@ -411,7 +411,7 @@
             "title": "feat(ai) service skeleton with mock outputs",
             "body": "What: endpoints and tables."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T051",
