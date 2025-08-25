@@ -10,7 +10,6 @@ const app = Fastify({ logger: true })
 
 // Env
 const DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://talvra:talvra@localhost:5432/talvra'
-console.log('DATABASE_URL:', DATABASE_URL)
 const AUTH_HOST = process.env.AUTH_SERVICE_HOST ?? '0.0.0.0'
 const AUTH_PORT = Number(process.env.AUTH_SERVICE_PORT ?? 4001)
 const SESSION_COOKIE = process.env.AUTH_SESSION_COOKIE ?? 'talvra.sid'
