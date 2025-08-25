@@ -15,9 +15,17 @@ declare module 'pdf-parse' {
     version: string
   }
 
-  export default function pdfParse(
-    data: Buffer | Uint8Array,
-    options?: PDFParseOptions
-  ): Promise<PDFParseResult>
+  const pdfParse: (data: Buffer | Uint8Array, options?: PDFParseOptions) => Promise<PDFParseResult>
+  export default pdfParse
+}
+
+declare module 'pdf-parse/lib/pdf-parse' {
+  import pdfParse from 'pdf-parse'
+  export default pdfParse
+}
+
+declare module 'pdf-parse/lib/pdf-parse.js' {
+  import pdfParse from 'pdf-parse'
+  export default pdfParse
 }
 

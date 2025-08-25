@@ -3,7 +3,6 @@ import Redis from 'ioredis'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import mammoth from 'mammoth'
-import pdfParse from 'pdf-parse'
 
 const app = Fastify({ logger: { level: 'info' } })
 
@@ -18,6 +17,22 @@ const redis = new Redis(REDIS_URL)
 
 app.get('/ingestion/health', async () => ({ ok: true }))
 
+async function loadPdfParse(): Promise<(data: Buffer) => Promise<any>> {
+  // Try known internal entry first (avoids top-level test file reads in some releases)
+  try {
+    const mod = (await import('pdf-parse/lib/pdf-parse.js').catch(() => import('pdf-parse/lib/pdf-parse')));
+    const fn = (mod as any).default ?? (mod as any)
+    if (typeof fn === 'function') return fn
+  } catch (_) {
+    // ignore and fallback below
+  }
+  // Fallback to package main
+  const main = await import('pdf-parse')
+  const fn = (main as any).default ?? (main as any)
+  if (typeof fn !== 'function') throw new Error('Failed to resolve pdf-parse function export')
+  return fn
+}
+
 async function extractToMarkdown(filePath: string): Promise<{ markdown: string; structure: any }> {
   const ext = path.extname(filePath).toLowerCase()
   if (ext === '.docx') {
@@ -28,6 +43,7 @@ async function extractToMarkdown(filePath: string): Promise<{ markdown: string; 
   }
   if (ext === '.pdf') {
     const buf = await fs.readFile(filePath)
+    const pdfParse = await loadPdfParse()
     const res = await pdfParse(buf)
     const text = res.text || ''
     return { markdown: text, structure: { type: 'pdf', length: text.length, pages: res.numpages } }
