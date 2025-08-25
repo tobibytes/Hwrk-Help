@@ -87,8 +87,44 @@ app.get('/ingestion/result/:doc_id', async (req, reply) => {
     const existsMd = await fs.access(mdPath).then(() => true).catch(() => false)
     const existsStruct = await fs.access(structPath).then(() => true).catch(() => false)
     if (!existsMd || !existsStruct) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'results not found' } })
-    return { ok: true, outputs: { markdown: mdPath, structure: structPath } }
+    // Expose fetchable URLs via gateway path (proxy maps /api/ingestion -> /ingestion)
+    const base = '/api/ingestion'
+    return { ok: true, outputs: {
+      markdown: `${base}/blob/${encodeURIComponent(docId)}/markdown`,
+      structure: `${base}/blob/${encodeURIComponent(docId)}/structure`
+    } }
   } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+// Serve markdown blob
+app.get('/ingestion/blob/:doc_id/markdown', async (req, reply) => {
+  const params = req.params as { doc_id: string }
+  const docId = params.doc_id
+  const mdPath = path.join(OUTPUT_DIR, `${docId}.md`)
+  try {
+    const content = await fs.readFile(mdPath, 'utf8')
+    reply.header('content-type', 'text/markdown; charset=utf-8')
+    return content
+  } catch (e: any) {
+    if ((e as any)?.code === 'ENOENT') return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'markdown not found' } })
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+// Serve structure JSON blob
+app.get('/ingestion/blob/:doc_id/structure', async (req, reply) => {
+  const params = req.params as { doc_id: string }
+  const docId = params.doc_id
+  const structPath = path.join(OUTPUT_DIR, `${docId}.structure.json`)
+  try {
+    const buf = await fs.readFile(structPath, 'utf8')
+    const json = JSON.parse(buf)
+    reply.header('content-type', 'application/json; charset=utf-8')
+    return json
+  } catch (e: any) {
+    if ((e as any)?.code === 'ENOENT') return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'structure not found' } })
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
   }
 })
