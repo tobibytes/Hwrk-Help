@@ -57,6 +57,18 @@ await app.register(httpProxy as any, {
   rewritePrefix: '/canvas'
 })
 
+// Proxy to ingestion-service
+const INGEST_UPSTREAM_HOST = process.env.INGESTION_SERVICE_HOST ?? 'ingestion-service'
+const INGEST_UPSTREAM_PORT = Number(process.env.INGESTION_SERVICE_PORT ?? 4010)
+const INGEST_UPSTREAM_DEFAULT = `http://${INGEST_UPSTREAM_HOST}:${INGEST_UPSTREAM_PORT}`
+const INGEST_UPSTREAM = process.env.INGESTION_SERVICE_URL ?? INGEST_UPSTREAM_DEFAULT
+
+await app.register(httpProxy as any, {
+  upstream: INGEST_UPSTREAM,
+  prefix: '/api/ingestion',
+  rewritePrefix: '/ingestion'
+})
+
 const port = Number(process.env.API_GATEWAY_PORT ?? 3001)
 const host = String(process.env.API_GATEWAY_HOST ?? '0.0.0.0')
 app
