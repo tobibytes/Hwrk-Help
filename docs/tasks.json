@@ -202,7 +202,7 @@
             "title": "feat(gateway) skeleton with health and request id",
             "body": "What: service base and health. Tests: curl ok."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T022",
@@ -236,7 +236,7 @@
             "title": "feat(gateway) proxy auth and session cookies",
             "body": "What: reverse proxy and cookie handling."
           },
-          "completed": false
+          "completed": true
         }
       ]
     },
