@@ -290,6 +290,28 @@
             "body": "What: hook and list. Tests: manual route visit."
           },
           "completed": false
+        },
+        {
+          "id": "T033",
+          "title": "Canvas API integration using user-provided token (no OAuth)",
+          "branch": "backend/canvas-token-integration",
+          "paths": ["services/auth-service/**", "services/canvas-service/**"],
+          "steps": [
+            "Add users.canvas_token_enc column (pgcrypto)",
+            "Extend signup/PUT endpoint to set encrypted token (and optional base URL)",
+            "Canvas-service reads token for current session user and calls /api/v1/courses",
+            "Fallback to fixtures when token missing; error on 401/403"
+          ],
+          "run": ["Set CANVAS_TOKEN_SECRET and CANVAS_BASE_URL in .env, then request /api/canvas/courses"],
+          "acceptance": [
+            "With a valid token, /api/canvas/courses returns real Canvas courses",
+            "Token is never returned in responses and is stored encrypted"
+          ],
+          "pr": {
+            "title": "feat(canvas) token-based Canvas API integration (no OAuth)",
+            "body": "What: encrypted token storage and Canvas client; How: user supplies token; Fallback: fixtures when missing."
+          },
+          "completed": false
         }
       ]
     },
