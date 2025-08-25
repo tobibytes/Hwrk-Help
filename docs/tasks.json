@@ -378,12 +378,14 @@
             "Add StorageProvider interface and LocalFs/Azure adapters",
             "Write originals and artifacts to provider",
             "Return gateway/SAS URLs from result endpoint",
-            "Document Azurite/Azure env in infra/.env.example"
+            "Document Azurite/Azure env in infra/.env.example",
+            "Use Docker DNS host 'azurite' in AZURE_STORAGE_CONNECTION_STRING (BlobEndpoint http://azurite:10000/devstoreaccount1) so containers do not target 127.0.0.1"
           ],
           "run": ["docker compose -f infra/docker-compose.yml up -d --build ingestion-service"],
           "acceptance": [
             "Extraction writes blobs to Azurite when configured, LocalFs otherwise",
-            "/api/ingestion/result/:doc_id returns fetchable URLs"
+            "/api/ingestion/result/:doc_id returns fetchable URLs",
+            "In Docker, ingestion-service connects to Azurite via host 'azurite' (no 127.0.0.1/localhost usage)"
           ],
           "pr": {
             "title": "feat(ingestion): T043 pluggable storage (LocalFs + Azure Blob/Azurite)",
@@ -428,6 +430,29 @@
             "title": "feat(web) slides and flashcards views",
             "body": "What: pages wired to AI outputs."
           },
+          "completed": true
+        },
+        {
+          "id": "T052",
+          "title": "AI pipeline v1: chunking, generation, and guardrails",
+          "branch": "backend/ai-pipeline-v1",
+          "paths": ["services/ai-service/**", "services/ingestion-service/**", "migrations/ai/**"],
+          "steps": [
+            "Chunk extracted markdown into sections with headings and references",
+            "Generate study notes that guide learning without disclosing exam answers",
+            "Generate high-quality flashcards (Q/A + hints) with source citations",
+            "Persist versions with metadata and timestamps; mark deprecated when re-generated",
+            "Add guardrails/prompting to avoid direct answers to graded questions"
+          ],
+          "run": ["pnpm --filter ./services/ai-service dev"],
+          "acceptance": [
+            "For a document, notes and flashcards are generated with source refs",
+            "Content adheres to 'guide, not cheat' guardrails"
+          ],
+          "pr": {
+            "title": "feat(ai) v1 pipeline with chunking, generation, and guardrails",
+            "body": "What: chunking + real generation + persistence + guardrails."
+          },
           "completed": false
         }
       ]
@@ -450,7 +475,7 @@
             "title": "feat(media) service skeleton with stub TTS",
             "body": "What: MP4 pipeline and storage."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T061",
@@ -468,6 +493,45 @@
             "body": "What: primitive and page."
           },
           "completed": false
+        },
+        {
+          "id": "T062",
+          "title": "Media pipeline v1: real TTS and video composition",
+          "branch": "backend/media-pipeline-v1",
+          "paths": ["services/media-service/**", "migrations/media/**"],
+          "steps": [
+            "Use real TTS provider (configurable) to generate audio from notes",
+            "Compose slides + audio into video via ffmpeg, generate thumbnail",
+            "Emit progress events and persist media metadata",
+            "Store media in provider (Azure/Local) and return signed/gateway URLs"
+          ],
+          "run": ["pnpm --filter ./services/media-service dev"],
+          "acceptance": [
+            "Video composed from notes with real TTS",
+            "Progress observable and metadata stored"
+          ],
+          "pr": {
+            "title": "feat(media) v1: real TTS and composition pipeline",
+            "body": "What: TTS + ffmpeg composition + metadata + storage."
+          },
+          "completed": false
+        },
+        {
+          "id": "T063",
+          "title": "Secure media delivery",
+          "branch": "backend/media-secure-delivery",
+          "paths": ["services/api-gateway/**", "services/media-service/**"],
+          "steps": [
+            "Serve media via signed URLs or gateway streaming with auth",
+            "Harden CORS and cache headers"
+          ],
+          "run": [],
+          "acceptance": ["Unauthenticated requests cannot access private media"],
+          "pr": {
+            "title": "feat(media) secure delivery",
+            "body": "What: signed URLs/gateway streaming and auth."
+          },
+          "completed": false
         }
       ]
     },
@@ -476,18 +540,23 @@
       "tasks": [
         {
           "id": "T070",
-          "title": "Semantic search with RedisSearch",
+          "title": "Semantic search (RAG) over ingested content",
           "branch": "backend/search-embeddings",
-          "paths": ["services/ai-service/**", "services/api-gateway/**"],
+          "paths": ["services/ai-service/**", "services/api-gateway/**", "services/ingestion-service/**"],
           "steps": [
-            "Store embeddings for notes",
-            "GET /search returns top matches"
+            "Chunk markdown into passages with stable IDs and metadata (doc_id, course_id, assignment_id, page range)",
+            "Compute embeddings for passages and store in RedisSearch or pgvector (configurable)",
+            "Implement GET /search with query embeddings + filters (course/assignment/module)",
+            "Return matches with excerpt, score, and source pointers"
           ],
-          "run": ["curl /search?q=term"],
-          "acceptance": ["Query returns expected doc ids"],
+          "run": ["curl \"/search?q=photosynthesis&course_id=123&assignment_id=456\""],
+          "acceptance": [
+            "Query returns expected passages with source metadata",
+            "Filters by course/assignment reduce the result set appropriately"
+          ],
           "pr": {
-            "title": "feat(search) semantic search over notes",
-            "body": "What: embedding index and endpoint."
+            "title": "feat(search) RAG-style search over passages with filters",
+            "body": "What: chunking + embeddings + filtered retrieval."
           },
           "completed": false
         },
@@ -524,6 +593,23 @@
             "body": "What: admin UI and routes."
           },
           "completed": false
+        },
+        {
+          "id": "T073",
+          "title": "Search UI with assignment scoping",
+          "branch": "web/search-ui",
+          "paths": ["apps/web/src/Areas/Search/**", "packages/talvra-routes/**"],
+          "steps": [
+            "Add search page with query input and filters (course/assignment/module)",
+            "Display passage results with excerpts and source links"
+          ],
+          "run": ["pnpm --filter web dev"],
+          "acceptance": ["Searching returns results scoped by selected assignment/course"],
+          "pr": {
+            "title": "feat(web) search UI scoped to course/assignment",
+            "body": "What: search page + filters + results display."
+          },
+          "completed": false
         }
       ]
     },
@@ -549,18 +635,20 @@
         },
         {
           "id": "T081",
-          "title": "Sync enqueues ingestion for new module items",
+          "title": "Canvas deep sync + ingestion bridge (assignments, modules, quizzes, attachments)",
           "branch": "backend/canvas-to-ingestion",
           "paths": ["services/canvas-service/**", "services/ingestion-service/**"],
           "steps": [
-            "Enumerate new files and publish ingest.request",
-            "Deduplicate by doc id"
+            "Sync courses, assignments, modules, quizzes, and module items",
+            "Download new/updated attachments and pages; compute content hash",
+            "Publish ingest.request for new content with course/assignment/module context",
+            "Deduplicate by content hash and document identity"
           ],
           "run": ["Run sync and observe documents appear"],
-          "acceptance": ["New files are processed end to end"],
+          "acceptance": ["New files are processed end to end and linked to assignment/module context"],
           "pr": {
-            "title": "feat(canvas) enqueue ingestion for new items",
-            "body": "What: event emission and dedupe."
+            "title": "feat(canvas) deep sync + ingestion bridge",
+            "body": "What: deeper Canvas sync and event bridge with dedupe."
           },
           "completed": false
         }
