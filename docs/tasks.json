@@ -311,8 +311,8 @@
             "title": "feat(canvas) token-based Canvas API integration (no OAuth)",
             "body": "What: encrypted token storage and Canvas client; How: user supplies token; Fallback: fixtures when missing."
           },
-          "completed": false
-        }
+          "completed": true
+        },
       ]
     },
     {
