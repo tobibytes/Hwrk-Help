@@ -7,7 +7,8 @@ export interface TalvraTextProps extends HTMLAttributes<HTMLElement> {
 }
 
 export const TalvraText = styled.div.withConfig({
-  shouldForwardProp: (prop) => prop !== 'as',
+  // In styled-components shouldForwardProp, treat prop as a string to avoid TS comparing keyof unions
+  shouldForwardProp: (prop: string) => prop !== 'as',
 })<TalvraTextProps>`
   /* Basic text with semantic styling based on 'as' prop */
   display: block;
