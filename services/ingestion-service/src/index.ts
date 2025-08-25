@@ -49,16 +49,14 @@ async function loadPdfParse(): Promise<(data: Buffer) => Promise<any>> {
   return fn
 }
 
-async function extractToMarkdown(filePath: string): Promise<{ markdown: string; structure: any }> {
-  const ext = path.extname(filePath).toLowerCase()
-  if (ext === '.docx') {
-    const buf = await fs.readFile(filePath)
+async function extractFromBuffer(buf: Buffer, ext: string): Promise<{ markdown: string; structure: any }> {
+  const lower = ext.toLowerCase()
+  if (lower === '.docx') {
     const res = await mammoth.extractRawText({ buffer: buf })
     const text = res.value || ''
     return { markdown: text, structure: { type: 'docx', length: text.length } }
   }
-  if (ext === '.pdf') {
-    const buf = await fs.readFile(filePath)
+  if (lower === '.pdf') {
     const pdfParse = await loadPdfParse()
     const res = await pdfParse(buf)
     const text = res.text || ''
@@ -67,14 +65,53 @@ async function extractToMarkdown(filePath: string): Promise<{ markdown: string; 
   throw new Error(`Unsupported file type: ${ext}`)
 }
 
+async function extractToMarkdown(filePath: string): Promise<{ markdown: string; structure: any }> {
+  const ext = path.extname(filePath).toLowerCase()
+  const buf = await fs.readFile(filePath)
+  return extractFromBuffer(buf, ext)
+}
+
 app.post('/ingestion/start', async (req, reply) => {
   const id = (req.headers['x-request-id'] as string) || req.id
-  const body = (req.body ?? {}) as { file?: string; doc_id?: string }
-  if (!body.file) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'file path required' } })
-  const docId = body.doc_id || path.basename(body.file, path.extname(body.file))
+  const body = (req.body ?? {}) as {
+    file?: string
+    url?: string
+    filename?: string
+    doc_id?: string
+    context?: { course_id?: string; assignment_id?: string; module_id?: string; module_item_id?: string }
+    bearer_token?: string
+  }
 
   try {
-    const { markdown, structure } = await extractToMarkdown(body.file)
+    let docId: string
+    let markdown: string
+    let structure: any
+
+    if (body.file) {
+      docId = body.doc_id || path.basename(body.file, path.extname(body.file))
+      const res = await extractToMarkdown(body.file)
+      markdown = res.markdown
+      structure = res.structure
+    } else if (body.url) {
+      const url = body.url
+      const filename = body.filename || new URL(url).pathname.split('/').pop() || 'document'
+      const ext = path.extname(filename)
+      if (!ext) {
+        return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'filename with extension required when using url' } })
+      }
+      const headers: Record<string, string> = {}
+      if (body.bearer_token) headers['authorization'] = `Bearer ${body.bearer_token}`
+      const res = await fetch(url, { headers })
+      if (!res.ok) return reply.code(400).send({ error: { code: 'BAD_UPSTREAM', message: `failed to fetch url: ${res.status}` } })
+      const arrayBuf = await res.arrayBuffer()
+      const buf = Buffer.from(arrayBuf)
+      const parsed = await extractFromBuffer(buf, ext)
+      markdown = parsed.markdown
+      structure = parsed.structure
+      docId = body.doc_id || filename.replace(ext, '')
+    } else {
+      return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'file or url required' } })
+    }
 
     // Persist outputs via storage provider
     const mdKey = `artifacts/${docId}/content.md`
@@ -83,7 +120,13 @@ app.post('/ingestion/start', async (req, reply) => {
     await storage.put(structKey, JSON.stringify(structure, null, 2), 'application/json; charset=utf-8')
 
     // Enqueue event with logical keys
-    const msg = { request_id: id, ts: new Date().toISOString(), doc_id: docId, outputs: { markdown: mdKey, structure: structKey } }
+    const msg = {
+      request_id: id,
+      ts: new Date().toISOString(),
+      doc_id: docId,
+      context: body.context ?? {},
+      outputs: { markdown: mdKey, structure: structKey }
+    }
     await redis.xadd(STREAM, '*', 'json', JSON.stringify(msg))
 
     return { ok: true, doc_id: docId, outputs: msg.outputs }
