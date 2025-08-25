@@ -34,14 +34,27 @@ app.get('/health', async (req, reply) => {
 })
 
 // Proxy to auth-service
-const AUTH_UPSTREAM_HOST = process.env.AUTH_SERVICE_HOST ?? '127.0.0.1'
+const AUTH_UPSTREAM_HOST = process.env.AUTH_SERVICE_HOST ?? 'auth-service'
 const AUTH_UPSTREAM_PORT = Number(process.env.AUTH_SERVICE_PORT ?? 4001)
-const AUTH_UPSTREAM = `http://${AUTH_UPSTREAM_HOST}:${AUTH_UPSTREAM_PORT}`
+const AUTH_UPSTREAM_DEFAULT = `http://${AUTH_UPSTREAM_HOST}:${AUTH_UPSTREAM_PORT}`
+const AUTH_UPSTREAM = process.env.AUTH_SERVICE_URL ?? AUTH_UPSTREAM_DEFAULT
 
 await app.register(httpProxy as any, {
   upstream: AUTH_UPSTREAM,
   prefix: '/api/auth',
   rewritePrefix: '/auth'
+})
+
+// Proxy to canvas-service
+const CANVAS_UPSTREAM_HOST = process.env.CANVAS_SERVICE_HOST ?? 'canvas-service'
+const CANVAS_UPSTREAM_PORT = Number(process.env.CANVAS_SERVICE_PORT ?? 4002)
+const CANVAS_UPSTREAM_DEFAULT = `http://${CANVAS_UPSTREAM_HOST}:${CANVAS_UPSTREAM_PORT}`
+const CANVAS_UPSTREAM = process.env.CANVAS_SERVICE_URL ?? CANVAS_UPSTREAM_DEFAULT
+
+await app.register(httpProxy as any, {
+  upstream: CANVAS_UPSTREAM,
+  prefix: '/api/canvas',
+  rewritePrefix: '/canvas'
 })
 
 const port = Number(process.env.API_GATEWAY_PORT ?? 3001)
