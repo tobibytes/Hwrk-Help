@@ -1,6 +1,7 @@
 import { TalvraCard, TalvraStack, TalvraText, TalvraButton } from '@ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAPI } from '@api';
+import { useState } from 'react';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
 
@@ -35,8 +36,53 @@ export function AuthPanel() {
   );
 
   const isAuthed = meQ.data?.ok === true;
-  console.log('isAuthed', isAuthed);
   const email = meQ.data?.user?.email;
+
+  // Canvas token state (never fetched/displayed after save)
+  const [canvasToken, setCanvasToken] = useState('');
+  const [canvasStatus, setCanvasStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function saveCanvasToken() {
+    setBusy(true);
+    setCanvasStatus(null);
+    try {
+      await fetchJSON(`${API_BASE}/api/auth/canvas/token`, {
+        method: 'PUT',
+        body: JSON.stringify({ token: canvasToken.trim() }),
+      });
+      // quick validation call
+      try {
+        const res = await fetch(`${API_BASE}/api/canvas/courses`, { credentials: 'include' });
+        if (res.ok) {
+          setCanvasStatus('Connected to Canvas successfully.');
+        } else {
+          const t = await res.text();
+          setCanvasStatus(`Saved token, but Canvas request failed: ${t || res.status}`);
+        }
+      } catch (e: any) {
+        setCanvasStatus(`Saved token, but validation failed: ${String(e?.message || e)}`);
+      }
+      setCanvasToken(''); // clear field after save
+    } catch (e: any) {
+      setCanvasStatus(`Save failed: ${String(e?.message || e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function clearCanvasToken() {
+    setBusy(true);
+    setCanvasStatus(null);
+    try {
+      await fetchJSON(`${API_BASE}/api/auth/canvas/token`, { method: 'DELETE' });
+      setCanvasStatus('Canvas token cleared.');
+    } catch (e: any) {
+      setCanvasStatus(`Clear failed: ${String(e?.message || e)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <TalvraCard>
@@ -58,6 +104,27 @@ export function AuthPanel() {
             >
               Logout
             </TalvraButton>
+
+            <TalvraText as="h4" style={{ marginTop: 16 }}>Canvas connection</TalvraText>
+            <TalvraText>
+              Provide your Canvas personal access token. Your institution base URL is fixed. We encrypt your token and never display it again.
+            </TalvraText>
+            <input
+              type="password"
+              placeholder="Enter Canvas access token"
+              value={canvasToken}
+              onChange={(e) => setCanvasToken(e.target.value)}
+              style={{ padding: 8, border: '1px solid #ddd', borderRadius: 6, width: '100%' }}
+            />
+            <TalvraStack>
+              <TalvraButton disabled={busy || canvasToken.trim() === ''} onClick={saveCanvasToken}>
+                Save token
+              </TalvraButton>
+              <TalvraButton disabled={busy} onClick={clearCanvasToken}>
+                Clear token
+              </TalvraButton>
+            </TalvraStack>
+            {canvasStatus && <TalvraText>{canvasStatus}</TalvraText>}
           </TalvraStack>
         )}
       </TalvraStack>
