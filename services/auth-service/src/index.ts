@@ -13,6 +13,7 @@ const DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://talvra:talvra@loc
 const AUTH_HOST = process.env.AUTH_SERVICE_HOST ?? '0.0.0.0'
 const AUTH_PORT = Number(process.env.AUTH_SERVICE_PORT ?? 4001)
 const SESSION_COOKIE = process.env.AUTH_SESSION_COOKIE ?? 'talvra.sid'
+const CANVAS_TOKEN_SECRET = process.env.CANVAS_TOKEN_SECRET ?? 'dev-canvas-secret'
 
 // Google OAuth
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? ''
@@ -41,6 +42,8 @@ async function bootstrapDb() {
     -- Ensure columns exist on pre-existing tables
     ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash text;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub text UNIQUE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS canvas_token_enc bytea;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS canvas_base_url text;
     CREATE TABLE IF NOT EXISTS sessions (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -52,12 +55,18 @@ async function bootstrapDb() {
 await app.register(cookie as any, { secret: process.env.AUTH_COOKIE_SECRET ?? 'dev-secret' })
 
 app.post('/auth/signup', async (req, reply) => {
-  const body = (req.body ?? {}) as { email?: string; password?: string }
+  const body = (req.body ?? {}) as { email?: string; password?: string; canvas_token?: string; canvas_base_url?: string }
   if (!body.email || !body.password) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'email and password required' } })
 
   const hash = await argon2.hash(body.password)
   try {
     await pool.query('INSERT INTO users (email, password_hash) VALUES ($1, $2)', [body.email, hash])
+    if (body.canvas_token && body.canvas_token.trim() !== '') {
+      await pool.query(
+        'UPDATE users SET canvas_token_enc = pgp_sym_encrypt($1, $2), canvas_base_url = COALESCE($3, canvas_base_url) WHERE email = $4',
+        [body.canvas_token, CANVAS_TOKEN_SECRET, body.canvas_base_url ?? null, body.email]
+      )
+    }
     return reply.code(201).send({ ok: true })
   } catch (e) {
     return reply.code(409).send({ error: { code: 'CONFLICT', message: 'email already exists' } })
@@ -104,6 +113,33 @@ app.get('/auth/me', async (req, reply) => {
 
   const u = rows[0] as { id: string; email: string; google_sub: string | null; created_at: string }
   return { ok: true, user: { id: u.id, email: u.email, google_sub: u.google_sub, created_at: u.created_at } }
+})
+
+// Manage Canvas token (set/rotate)
+app.put('/auth/canvas/token', async (req, reply) => {
+  const body = (req.body ?? {}) as { token?: string; base_url?: string }
+  const sid = (req.cookies ?? {})[SESSION_COOKIE]
+  if (!sid) return reply.code(401).send({ error: { code: 'UNAUTHENTICATED', message: 'missing session' } })
+  if (!body.token || body.token.trim() === '') return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'token required' } })
+  const r = await pool.query('SELECT user_id FROM sessions WHERE id = $1', [sid])
+  if (r.rows.length === 0) return reply.code(401).send({ error: { code: 'UNAUTHENTICATED', message: 'invalid session' } })
+  const userId = (r.rows[0] as { user_id: string }).user_id
+  await pool.query(
+    'UPDATE users SET canvas_token_enc = pgp_sym_encrypt($1, $2), canvas_base_url = COALESCE($3, canvas_base_url) WHERE id = $4',
+    [body.token, CANVAS_TOKEN_SECRET, body.base_url ?? null, userId]
+  )
+  return { ok: true }
+})
+
+// Clear Canvas token
+app.delete('/auth/canvas/token', async (req, reply) => {
+  const sid = (req.cookies ?? {})[SESSION_COOKIE]
+  if (!sid) return reply.code(401).send({ error: { code: 'UNAUTHENTICATED', message: 'missing session' } })
+  const r = await pool.query('SELECT user_id FROM sessions WHERE id = $1', [sid])
+  if (r.rows.length === 0) return reply.code(401).send({ error: { code: 'UNAUTHENTICATED', message: 'invalid session' } })
+  const userId = (r.rows[0] as { user_id: string }).user_id
+  await pool.query('UPDATE users SET canvas_token_enc = NULL WHERE id = $1', [userId])
+  return { ok: true }
 })
 
 // Logout (clear session)
