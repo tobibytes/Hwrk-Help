@@ -57,6 +57,46 @@ await app.register(httpProxy as any, {
   rewritePrefix: '/canvas'
 })
 
+// Proxy to ingestion-service
+const INGEST_UPSTREAM_HOST = process.env.INGESTION_SERVICE_HOST ?? 'ingestion-service'
+const INGEST_UPSTREAM_PORT = Number(process.env.INGESTION_SERVICE_PORT ?? 4010)
+const INGEST_UPSTREAM_DEFAULT = `http://${INGEST_UPSTREAM_HOST}:${INGEST_UPSTREAM_PORT}`
+const INGEST_UPSTREAM = process.env.INGESTION_SERVICE_URL ?? INGEST_UPSTREAM_DEFAULT
+
+await app.register(httpProxy as any, {
+  upstream: INGEST_UPSTREAM,
+  prefix: '/api/ingestion',
+  rewritePrefix: '/ingestion',
+  rewriteHeaders: (headers: Record<string, string>, req: any) => {
+    const origin = req.headers?.origin
+    if (origin && origin === FRONTEND_ORIGIN) {
+      headers['access-control-allow-origin'] = origin
+      headers['access-control-allow-credentials'] = 'true'
+    }
+    return headers
+  }
+})
+
+// Proxy to ai-service
+const AI_UPSTREAM_HOST = process.env.AI_SERVICE_HOST ?? 'ai-service'
+const AI_UPSTREAM_PORT = Number(process.env.AI_SERVICE_PORT ?? 4020)
+const AI_UPSTREAM_DEFAULT = `http://${AI_UPSTREAM_HOST}:${AI_UPSTREAM_PORT}`
+const AI_UPSTREAM = process.env.AI_SERVICE_URL ?? AI_UPSTREAM_DEFAULT
+
+await app.register(httpProxy as any, {
+  upstream: AI_UPSTREAM,
+  prefix: '/api/ai',
+  rewritePrefix: '/ai',
+  rewriteHeaders: (headers: Record<string, string>, req: any) => {
+    const origin = req.headers?.origin
+    if (origin && origin === FRONTEND_ORIGIN) {
+      headers['access-control-allow-origin'] = origin
+      headers['access-control-allow-credentials'] = 'true'
+    }
+    return headers
+  }
+})
+
 const port = Number(process.env.API_GATEWAY_PORT ?? 3001)
 const host = String(process.env.API_GATEWAY_HOST ?? '0.0.0.0')
 app

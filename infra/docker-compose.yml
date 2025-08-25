@@ -73,6 +73,8 @@ services:
       API_GATEWAY_PORT: 3001
       AUTH_SERVICE_URL: http://auth-service:4001
       FRONTEND_ORIGIN: http://localhost:5173
+      INGESTION_SERVICE_URL: http://ingestion-service:4010
+      AI_SERVICE_URL: http://ai-service:4020
     depends_on:
       auth-service:
         condition: service_started
@@ -90,6 +92,43 @@ services:
         condition: service_started
     ports:
       - "5173:5173"
+
+  ingestion-service:
+    build:
+      context: ..
+      dockerfile: services/ingestion-service/Dockerfile
+    container_name: talvra_ingestion_service
+    environment:
+      INGESTION_SERVICE_HOST: 0.0.0.0
+      INGESTION_SERVICE_PORT: 4010
+      REDIS_URL: redis://redis:6379
+      INGEST_STREAM: ingest.request
+      INGEST_STORAGE_PROVIDER: ${INGEST_STORAGE_PROVIDER:-local}
+      INGEST_OUTPUT_DIR: ./services/ingestion-service/out
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING:-}
+      AZURE_STORAGE_CONTAINER: ${AZURE_STORAGE_CONTAINER:-talvra}
+    depends_on:
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "4010:4010"
+
+  ai-service:
+    build:
+      context: ..
+      dockerfile: services/ai-service/Dockerfile
+    container_name: talvra_ai_service
+    environment:
+      AI_SERVICE_HOST: 0.0.0.0
+      AI_SERVICE_PORT: 4020
+      AI_OUTPUT_DIR: ./services/ai-service/out
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_started
+    ports:
+      - "4020:4020"
 
   canvas-service:
     build:
