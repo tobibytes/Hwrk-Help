@@ -2,6 +2,7 @@ import Fastify from 'fastify'
 import { Pool } from 'pg'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import cookie from '@fastify/cookie'
 
 const app = Fastify({ logger: true })
 
@@ -32,6 +33,8 @@ async function bootstrapDb() {
     ALTER TABLE courses ALTER COLUMN created_at SET DEFAULT now();
   `)
 }
+
+await app.register(cookie as any)
 
 app.get('/canvas/health', async () => ({ ok: true }))
 
