@@ -1,5 +1,21 @@
-
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: talvra_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-talvra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-talvra}
+      POSTGRES_DB: ${POSTGRES_DB:-talvra}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     container_name: talvra_redis
@@ -39,6 +55,9 @@ services:
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3001/api/auth/google/callback}
       AUTH_GOOGLE_SCOPES: ${AUTH_GOOGLE_SCOPES:-openid email profile}
       AUTH_GOOGLE_ALLOWED_HD: ${AUTH_GOOGLE_ALLOWED_HD:-morgan.edu}
+    depends_on:
+      postgres:
+        condition: service_started
     restart: unless-stopped
     ports:
       - "4001:4001"
@@ -72,5 +91,6 @@ services:
       - "5173:5173"
 
 volumes:
+  pgdata:
   redisdata:
   azuritedata:
