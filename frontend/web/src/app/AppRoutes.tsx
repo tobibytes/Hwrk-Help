@@ -7,6 +7,7 @@ import SettingsArea from '@/Areas/Settings';
 import DocumentsArea from '@/Areas/Documents';
 import DocumentDetailArea from '@/Areas/Documents/Detail';
 import DocumentAIArea from '@/Areas/Documents/AI';
+import DocumentVideoArea from '@/Areas/Documents/Video';
 
 // Create router configuration
 const router = createBrowserRouter([
@@ -63,6 +64,14 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<div>Loading...</div>}>
         <DocumentAIArea />
+      </Suspense>
+    ),
+  },
+  {
+    path: buildPath(FRONT_ROUTES.DOCUMENT_VIDEO, { documentId: ':documentId' }),
+    element: (
+      <Suspense fallback={<div>Loading...</div>}>
+        <DocumentVideoArea />
       </Suspense>
     ),
   },
