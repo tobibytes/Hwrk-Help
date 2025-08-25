@@ -13,6 +13,9 @@
     "tsx": "^4.20.4",
     "zod": "^4.1.0"
   },
+  "dependencies": {
+    "fastify": "4.9.0"
+  },
   "engines": {
     "node": ">=18",
     "pnpm": ">=8"

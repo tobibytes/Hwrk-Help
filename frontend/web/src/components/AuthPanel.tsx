@@ -35,6 +35,7 @@ export function AuthPanel() {
   );
 
   const isAuthed = meQ.data?.ok === true;
+  console.log('isAuthed', isAuthed);
   const email = meQ.data?.user?.email;
 
   return (

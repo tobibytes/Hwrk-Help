@@ -3,7 +3,7 @@ import httpProxy from '@fastify/http-proxy'
 import cors from '@fastify/cors'
 import { randomUUID } from 'node:crypto'
 
-const app = Fastify({ logger: true })
+const app = Fastify({ logger: { level: 'info' } })
 
 // Request ID hook - prefer incoming header, fallback to Fastify's req.id
 app.addHook('onRequest', async (req, reply) => {

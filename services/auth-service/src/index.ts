@@ -10,6 +10,7 @@ const app = Fastify({ logger: true })
 
 // Env
 const DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://talvra:talvra@localhost:5432/talvra'
+console.log('DATABASE_URL:', DATABASE_URL)
 const AUTH_HOST = process.env.AUTH_SERVICE_HOST ?? '0.0.0.0'
 const AUTH_PORT = Number(process.env.AUTH_SERVICE_PORT ?? 4001)
 const SESSION_COOKIE = process.env.AUTH_SESSION_COOKIE ?? 'talvra.sid'
@@ -38,6 +39,8 @@ async function bootstrapDb() {
       google_sub text UNIQUE,
       created_at timestamptz NOT NULL DEFAULT now()
     );
+    -- Ensure columns exist on pre-existing tables
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash text;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub text UNIQUE;
     CREATE TABLE IF NOT EXISTS sessions (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -123,9 +126,9 @@ app.get('/auth/google/start', async (req, reply) => {
   const codeChallenge = b64url(createHash('sha256').update(codeVerifier).digest())
   const next = typeof (req.query as any)?.redirect === 'string' ? (req.query as any).redirect : '/'
 
-  reply.setCookie('g_state', state, { httpOnly: true, sameSite: 'lax', path: '/auth/google', signed: true })
-  reply.setCookie('g_code_v', codeVerifier, { httpOnly: true, sameSite: 'lax', path: '/auth/google', signed: true })
-  reply.setCookie('g_next', next, { httpOnly: true, sameSite: 'lax', path: '/auth/google', signed: true })
+  reply.setCookie('g_state', state, { httpOnly: true, sameSite: 'lax', path: '/api/auth/google', signed: true })
+  reply.setCookie('g_code_v', codeVerifier, { httpOnly: true, sameSite: 'lax', path: '/api/auth/google', signed: true })
+  reply.setCookie('g_next', next, { httpOnly: true, sameSite: 'lax', path: '/api/auth/google', signed: true })
 
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
@@ -202,9 +205,9 @@ app.get('/auth/google/callback', async (req, reply) => {
       return reply.code(409).send({ error: { code: 'CONFLICT', message: 'google account already linked' } })
     }
     // Cleanup cookies
-    reply.clearCookie('g_state', { path: '/auth/google' })
-    reply.clearCookie('g_code_v', { path: '/auth/google' })
-    reply.clearCookie('g_next', { path: '/auth/google' })
+    reply.clearCookie('g_state', { path: '/api/auth/google' })
+    reply.clearCookie('g_code_v', { path: '/api/auth/google' })
+    reply.clearCookie('g_next', { path: '/api/auth/google' })
     return reply.redirect(next)
   }
 
@@ -234,9 +237,9 @@ app.get('/auth/google/callback', async (req, reply) => {
   reply.setCookie(SESSION_COOKIE, newSid, { path: '/', httpOnly: true, sameSite: 'lax' })
 
   // Cleanup cookies and redirect
-  reply.clearCookie('g_state', { path: '/auth/google' })
-  reply.clearCookie('g_code_v', { path: '/auth/google' })
-  reply.clearCookie('g_next', { path: '/auth/google' })
+  reply.clearCookie('g_state', { path: '/api/auth/google' })
+  reply.clearCookie('g_code_v', { path: '/api/auth/google' })
+  reply.clearCookie('g_next', { path: '/api/auth/google' })
   return reply.redirect(next)
 })
 
