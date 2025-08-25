@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import type { StorageProvider, BlobPointer } from './provider'
+import type { StorageProvider, BlobPointer } from './provider.js'
 
 export class LocalFsProvider implements StorageProvider {
   constructor(private rootDir: string, private container = 'local') {}

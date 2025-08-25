@@ -1,5 +1,5 @@
 import { BlobServiceClient } from '@azure/storage-blob'
-import type { StorageProvider, BlobPointer } from './provider'
+import type { StorageProvider, BlobPointer } from './provider.js'
 
 export class AzureBlobProvider implements StorageProvider {
   private containerName: string

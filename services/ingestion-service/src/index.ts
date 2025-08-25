@@ -3,9 +3,9 @@ import Redis from 'ioredis'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import mammoth from 'mammoth'
-import { LocalFsProvider } from './storage/local'
-import { AzureBlobProvider } from './storage/azure'
-import type { StorageProvider } from './storage/provider'
+import { LocalFsProvider } from './storage/local.js'
+import { AzureBlobProvider } from './storage/azure.js'
+import type { StorageProvider } from './storage/provider.js'
 
 const app = Fastify({ logger: { level: 'info' } })
 
