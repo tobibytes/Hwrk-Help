@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { FRONT_ROUTES, buildPath } from './routes';
 import AdminArea from '@/Areas/Admin';
 import CoursesArea from '@/Areas/Courses';
+import { AuthPanel } from '@/components/AuthPanel';
 
 // Create router configuration
 const router = createBrowserRouter([
@@ -10,6 +11,7 @@ const router = createBrowserRouter([
     path: '/',
     element: (
       <Suspense fallback={<div>Loading...</div>}>
+        <AuthPanel />
         <AdminArea />
       </Suspense>
     ),

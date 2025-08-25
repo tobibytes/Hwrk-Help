@@ -1,23 +1,5 @@
-version: '3.9'
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: talvra_postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-talvra}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-talvra}
-      POSTGRES_DB: ${POSTGRES_DB:-talvra}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     container_name: talvra_redis
@@ -41,7 +23,54 @@ services:
     volumes:
       - azuritedata:/data
 
+  auth-service:
+    build:
+      context: ..
+      dockerfile: services/auth-service/Dockerfile
+    container_name: talvra_auth_service
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://talvra:talvra@postgres:5432/talvra}
+      AUTH_SERVICE_HOST: 0.0.0.0
+      AUTH_SERVICE_PORT: 4001
+      AUTH_SESSION_COOKIE: talvra.sid
+      AUTH_COOKIE_SECRET: ${AUTH_COOKIE_SECRET:-dev-secret}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3001/api/auth/google/callback}
+      AUTH_GOOGLE_SCOPES: ${AUTH_GOOGLE_SCOPES:-openid email profile}
+      AUTH_GOOGLE_ALLOWED_HD: ${AUTH_GOOGLE_ALLOWED_HD:-morgan.edu}
+    restart: unless-stopped
+    ports:
+      - "4001:4001"
+
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: talvra_api_gateway
+    environment:
+      API_GATEWAY_HOST: 0.0.0.0
+      API_GATEWAY_PORT: 3001
+      AUTH_SERVICE_URL: http://auth-service:4001
+      FRONTEND_ORIGIN: http://localhost:5173
+    depends_on:
+      auth-service:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+
+  web:
+    build:
+      context: ..
+      dockerfile: frontend/web/Dockerfile
+    container_name: talvra_web
+    depends_on:
+      api-gateway:
+        condition: service_started
+    ports:
+      - "5173:5173"
+
 volumes:
-  pgdata:
   redisdata:
   azuritedata:

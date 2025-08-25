@@ -1,5 +1,6 @@
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard } from '@ui';
+import { AuthPanel } from '@/components/AuthPanel';
 
 export default function AdminArea() {
   return (
@@ -7,6 +8,8 @@ export default function AdminArea() {
       <TalvraStack>
         <TalvraText as="h1">Talvra Admin</TalvraText>
         <TalvraText>Welcome to the Talvra learning platform administration area.</TalvraText>
+        
+        <AuthPanel />
         
         <TalvraStack>
           <TalvraText as="h2">Navigation</TalvraText>

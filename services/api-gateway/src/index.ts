@@ -1,13 +1,24 @@
 import Fastify from 'fastify'
+import httpProxy from '@fastify/http-proxy'
+import cors from '@fastify/cors'
 import { randomUUID } from 'node:crypto'
 
-const app = Fastify({ logger: true })
+const app = Fastify({ logger: { level: 'info' } })
 
 // Request ID hook - prefer incoming header, fallback to Fastify's req.id
 app.addHook('onRequest', async (req, reply) => {
   const incoming = req.headers['x-request-id']
   const reqId = typeof incoming === 'string' ? incoming : req.id
   reply.header('x-request-id', reqId)
+})
+
+// CORS for browser requests
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'
+await app.register(cors as any, {
+  origin: FRONTEND_ORIGIN,
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['content-type', 'x-request-id']
 })
 
 // Root route (smoke)
@@ -27,7 +38,7 @@ const AUTH_UPSTREAM_HOST = process.env.AUTH_SERVICE_HOST ?? '127.0.0.1'
 const AUTH_UPSTREAM_PORT = Number(process.env.AUTH_SERVICE_PORT ?? 4001)
 const AUTH_UPSTREAM = `http://${AUTH_UPSTREAM_HOST}:${AUTH_UPSTREAM_PORT}`
 
-await app.register((await import('@fastify/http-proxy')).default, {
+await app.register(httpProxy as any, {
   upstream: AUTH_UPSTREAM,
   prefix: '/api/auth',
   rewritePrefix: '/auth'

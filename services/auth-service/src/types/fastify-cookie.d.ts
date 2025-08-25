@@ -12,4 +12,3 @@ declare module 'fastify' {
     clearCookie: (name: string, options?: any) => this
   }
 }
-

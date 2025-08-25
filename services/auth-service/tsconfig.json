@@ -5,6 +5,7 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
     "rootDir": "src",
+    "baseUrl": ".",
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
@@ -14,5 +15,6 @@
     "declaration": false,
     "types": ["node", "@fastify/cookie"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "src/types/**/*"],
+  "exclude": ["node_modules", "dist", "scripts/**/*"]
 }

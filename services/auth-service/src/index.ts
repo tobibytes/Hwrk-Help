@@ -38,6 +38,8 @@ async function bootstrapDb() {
       google_sub text UNIQUE,
       created_at timestamptz NOT NULL DEFAULT now()
     );
+    -- Ensure columns exist on pre-existing tables
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash text;
     ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub text UNIQUE;
     CREATE TABLE IF NOT EXISTS sessions (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -89,6 +91,31 @@ app.get('/auth/session', async (req, reply) => {
   return { ok: true, user_id: (rows[0] as { user_id: string }).user_id }
 })
 
+// Current user info
+app.get('/auth/me', async (req, reply) => {
+  const sid = (req.cookies ?? {})[SESSION_COOKIE]
+  if (!sid) return reply.code(401).send({ error: { code: 'UNAUTHENTICATED', message: 'missing session' } })
+
+  const { rows } = await pool.query(
+    'SELECT u.id, u.email, u.google_sub, u.created_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = $1',
+    [sid]
+  )
+  if (rows.length === 0) return reply.code(401).send({ error: { code: 'UNAUTHENTICATED', message: 'invalid session' } })
+
+  const u = rows[0] as { id: string; email: string; google_sub: string | null; created_at: string }
+  return { ok: true, user: { id: u.id, email: u.email, google_sub: u.google_sub, created_at: u.created_at } }
+})
+
+// Logout (clear session)
+app.post('/auth/logout', async (req, reply) => {
+  const sid = (req.cookies ?? {})[SESSION_COOKIE]
+  if (sid) {
+    await pool.query('DELETE FROM sessions WHERE id = $1', [sid])
+    reply.clearCookie(SESSION_COOKIE, { path: '/' })
+  }
+  return { ok: true }
+})
+
 // Google OAuth - start
 app.get('/auth/google/start', async (req, reply) => {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) return reply.code(500).send({ error: { code: 'INTERNAL', message: 'Google OAuth not configured' } })
@@ -98,9 +125,9 @@ app.get('/auth/google/start', async (req, reply) => {
   const codeChallenge = b64url(createHash('sha256').update(codeVerifier).digest())
   const next = typeof (req.query as any)?.redirect === 'string' ? (req.query as any).redirect : '/'
 
-  reply.setCookie('g_state', state, { httpOnly: true, sameSite: 'lax', path: '/auth/google', signed: true })
-  reply.setCookie('g_code_v', codeVerifier, { httpOnly: true, sameSite: 'lax', path: '/auth/google', signed: true })
-  reply.setCookie('g_next', next, { httpOnly: true, sameSite: 'lax', path: '/auth/google', signed: true })
+  reply.setCookie('g_state', state, { httpOnly: true, sameSite: 'lax', path: '/api/auth/google', signed: true })
+  reply.setCookie('g_code_v', codeVerifier, { httpOnly: true, sameSite: 'lax', path: '/api/auth/google', signed: true })
+  reply.setCookie('g_next', next, { httpOnly: true, sameSite: 'lax', path: '/api/auth/google', signed: true })
 
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
@@ -177,9 +204,9 @@ app.get('/auth/google/callback', async (req, reply) => {
       return reply.code(409).send({ error: { code: 'CONFLICT', message: 'google account already linked' } })
     }
     // Cleanup cookies
-    reply.clearCookie('g_state', { path: '/auth/google' })
-    reply.clearCookie('g_code_v', { path: '/auth/google' })
-    reply.clearCookie('g_next', { path: '/auth/google' })
+    reply.clearCookie('g_state', { path: '/api/auth/google' })
+    reply.clearCookie('g_code_v', { path: '/api/auth/google' })
+    reply.clearCookie('g_next', { path: '/api/auth/google' })
     return reply.redirect(next)
   }
 
@@ -209,9 +236,9 @@ app.get('/auth/google/callback', async (req, reply) => {
   reply.setCookie(SESSION_COOKIE, newSid, { path: '/', httpOnly: true, sameSite: 'lax' })
 
   // Cleanup cookies and redirect
-  reply.clearCookie('g_state', { path: '/auth/google' })
-  reply.clearCookie('g_code_v', { path: '/auth/google' })
-  reply.clearCookie('g_next', { path: '/auth/google' })
+  reply.clearCookie('g_state', { path: '/api/auth/google' })
+  reply.clearCookie('g_code_v', { path: '/api/auth/google' })
+  reply.clearCookie('g_next', { path: '/api/auth/google' })
   return reply.redirect(next)
 })
 
