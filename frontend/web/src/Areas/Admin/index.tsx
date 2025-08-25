@@ -20,6 +20,9 @@ export default function AdminArea() {
             <TalvraLink href={buildPath(FRONT_ROUTES.COURSES)}>
               {FRONT_ROUTES.COURSES.name}
             </TalvraLink>
+            <TalvraLink href={buildPath(FRONT_ROUTES.SETTINGS)}>
+              {FRONT_ROUTES.SETTINGS.name}
+            </TalvraLink>
           </TalvraStack>
         </TalvraStack>
 
