@@ -83,7 +83,7 @@ services:
   ingestion-service:
     build:
       context: ..
-    dockerfile: services/ingestion-service/Dockerfile
+      dockerfile: services/ingestion-service/Dockerfile
     container_name: talvra_ingestion_service
     env_file:
       - .env
