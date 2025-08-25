@@ -258,7 +258,7 @@
             "title": "feat(canvas) service skeleton with fixture sync",
             "body": "What: tables and endpoints. Tests: sync then read."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T031",
@@ -272,7 +272,7 @@
             "title": "feat(gateway) proxy canvas routes",
             "body": "What: proxy rules."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T032",
