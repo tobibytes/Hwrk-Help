@@ -6,7 +6,11 @@ export class AzureBlobProvider implements StorageProvider {
   private client: BlobServiceClient
 
   constructor(connectionString: string, containerName: string) {
-    this.client = BlobServiceClient.fromConnectionString(connectionString)
+    const serviceVersion = process.env.AZURE_BLOB_SERVICE_VERSION as any | undefined
+    this.client = BlobServiceClient.fromConnectionString(
+      connectionString,
+      serviceVersion ? { serviceVersion } : undefined,
+    )
     this.containerName = containerName
   }
 
