@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: talvra_postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-talvra}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-talvra}
-      POSTGRES_DB: ${POSTGRES_DB:-talvra}
+      POSTGRES_USER: talvra
+      POSTGRES_PASSWORD: talvra
+      POSTGRES_DB: talvra
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -45,7 +45,7 @@ services:
       dockerfile: services/auth-service/Dockerfile
     container_name: talvra_auth_service
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://talvra:talvra@postgres:5432/talvra}
+      DATABASE_URL: postgresql://talvra:talvra@postgres:5432/talvra
       AUTH_SERVICE_HOST: 0.0.0.0
       AUTH_SERVICE_PORT: 4001
       AUTH_SESSION_COOKIE: talvra.sid
@@ -55,6 +55,7 @@ services:
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3001/api/auth/google/callback}
       AUTH_GOOGLE_SCOPES: ${AUTH_GOOGLE_SCOPES:-openid email profile}
       AUTH_GOOGLE_ALLOWED_HD: ${AUTH_GOOGLE_ALLOWED_HD:-morgan.edu}
+      CANVAS_TOKEN_SECRET: ${CANVAS_TOKEN_SECRET:-dev-canvas-secret}
     depends_on:
       postgres:
         condition: service_started
@@ -89,6 +90,25 @@ services:
         condition: service_started
     ports:
       - "5173:5173"
+
+  canvas-service:
+    build:
+      context: ..
+      dockerfile: services/canvas-service/Dockerfile
+    container_name: talvra_canvas_service
+    environment:
+      CANVAS_SERVICE_HOST: 0.0.0.0
+      CANVAS_SERVICE_PORT: 4002
+      CANVAS_DATABASE_URL: postgresql://talvra:talvra@postgres:5432/talvra
+      PGHOST: postgres
+      CANVAS_TOKEN_SECRET: ${CANVAS_TOKEN_SECRET:-dev-canvas-secret}
+      CANVAS_BASE_URL: ${CANVAS_BASE_URL:-}
+    depends_on:
+      postgres:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "4002:4002"
 
 volumes:
   pgdata:
