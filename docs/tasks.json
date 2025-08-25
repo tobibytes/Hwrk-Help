@@ -367,6 +367,28 @@
             "title": "feat(web) document view screen",
             "body": "What: page and routes."
           },
+          "completed": true
+        },
+        {
+          "id": "T043",
+          "title": "Ingestion storage provider (LocalFs + Azure Blob/Azurite)",
+          "branch": "backend/ingestion-storage",
+          "paths": ["services/ingestion-service/**", "infra/.env.example"],
+          "steps": [
+            "Add StorageProvider interface and LocalFs/Azure adapters",
+            "Write originals and artifacts to provider",
+            "Return gateway/SAS URLs from result endpoint",
+            "Document Azurite/Azure env in infra/.env.example"
+          ],
+          "run": ["docker compose -f infra/docker-compose.yml up -d --build ingestion-service"],
+          "acceptance": [
+            "Extraction writes blobs to Azurite when configured, LocalFs otherwise",
+            "/api/ingestion/result/:doc_id returns fetchable URLs"
+          ],
+          "pr": {
+            "title": "feat(ingestion): T043 pluggable storage (LocalFs + Azure Blob/Azurite)",
+            "body": "What: storage abstraction and Azure adapter. How: env selects provider. Tests: Azurite run and fetch URLs."
+          },
           "completed": false
         }
       ]

@@ -96,7 +96,6 @@ await app.register(httpProxy as any, {
     return headers
   }
 })
-
 const port = Number(process.env.API_GATEWAY_PORT ?? 3001)
 const host = String(process.env.API_GATEWAY_HOST ?? '0.0.0.0')
 app

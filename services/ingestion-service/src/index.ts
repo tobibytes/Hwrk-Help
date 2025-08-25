@@ -3,6 +3,9 @@ import Redis from 'ioredis'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import mammoth from 'mammoth'
+import { LocalFsProvider } from './storage/local.js'
+import { AzureBlobProvider } from './storage/azure.js'
+import type { StorageProvider } from './storage/provider.js'
 
 const app = Fastify({ logger: { level: 'info' } })
 
@@ -12,6 +15,19 @@ const PORT = Number(process.env.INGESTION_SERVICE_PORT ?? 4010)
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://redis:6379'
 const STREAM = process.env.INGEST_STREAM ?? 'ingest.request'
 const OUTPUT_DIR = process.env.INGEST_OUTPUT_DIR ?? path.resolve(process.cwd(), 'out')
+const STORAGE_PROVIDER = process.env.INGEST_STORAGE_PROVIDER ?? 'local'
+const AZURE_CS = process.env.AZURE_STORAGE_CONNECTION_STRING
+const AZURE_CONTAINER = process.env.AZURE_STORAGE_CONTAINER ?? 'talvra'
+
+let storage: StorageProvider
+if (STORAGE_PROVIDER === 'azure') {
+  if (!AZURE_CS) {
+    throw new Error('INGEST_STORAGE_PROVIDER=azure but AZURE_STORAGE_CONNECTION_STRING is missing')
+  }
+  storage = new AzureBlobProvider(AZURE_CS, AZURE_CONTAINER)
+} else {
+  storage = new LocalFsProvider(OUTPUT_DIR)
+}
 
 const redis = new Redis(REDIS_URL)
 
@@ -60,15 +76,14 @@ app.post('/ingestion/start', async (req, reply) => {
   try {
     const { markdown, structure } = await extractToMarkdown(body.file)
 
-    // Write outputs to local out dir (mocking blob storage for now)
-    await fs.mkdir(OUTPUT_DIR, { recursive: true })
-    const mdPath = path.join(OUTPUT_DIR, `${docId}.md`)
-    const structPath = path.join(OUTPUT_DIR, `${docId}.structure.json`)
-    await fs.writeFile(mdPath, markdown, 'utf8')
-    await fs.writeFile(structPath, JSON.stringify(structure, null, 2), 'utf8')
+    // Persist outputs via storage provider
+    const mdKey = `artifacts/${docId}/content.md`
+    const structKey = `artifacts/${docId}/structure.json`
+    await storage.put(mdKey, markdown, 'text/markdown; charset=utf-8')
+    await storage.put(structKey, JSON.stringify(structure, null, 2), 'application/json; charset=utf-8')
 
-    // Enqueue event
-    const msg = { request_id: id, ts: new Date().toISOString(), doc_id: docId, outputs: { markdown: mdPath, structure: structPath } }
+    // Enqueue event with logical keys
+    const msg = { request_id: id, ts: new Date().toISOString(), doc_id: docId, outputs: { markdown: mdKey, structure: structKey } }
     await redis.xadd(STREAM, '*', 'json', JSON.stringify(msg))
 
     return { ok: true, doc_id: docId, outputs: msg.outputs }
@@ -81,14 +96,50 @@ app.post('/ingestion/start', async (req, reply) => {
 app.get('/ingestion/result/:doc_id', async (req, reply) => {
   const params = req.params as { doc_id: string }
   const docId = params.doc_id
-  const mdPath = path.join(OUTPUT_DIR, `${docId}.md`)
-  const structPath = path.join(OUTPUT_DIR, `${docId}.structure.json`)
+  const mdKey = `artifacts/${docId}/content.md`
+  const structKey = `artifacts/${docId}/structure.json`
   try {
-    const existsMd = await fs.access(mdPath).then(() => true).catch(() => false)
-    const existsStruct = await fs.access(structPath).then(() => true).catch(() => false)
+    const existsMd = await storage.exists(mdKey)
+    const existsStruct = await storage.exists(structKey)
     if (!existsMd || !existsStruct) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'results not found' } })
-    return { ok: true, outputs: { markdown: mdPath, structure: structPath } }
+    // Expose fetchable URLs via gateway path (proxy maps /api/ingestion -> /ingestion)
+    const base = '/api/ingestion'
+    return { ok: true, outputs: {
+      markdown: `${base}/blob/${encodeURIComponent(docId)}/markdown`,
+      structure: `${base}/blob/${encodeURIComponent(docId)}/structure`
+    } }
   } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+// Serve markdown blob
+app.get('/ingestion/blob/:doc_id/markdown', async (req, reply) => {
+  const params = req.params as { doc_id: string }
+  const docId = params.doc_id
+  const mdKey = `artifacts/${docId}/content.md`
+  try {
+    const { body } = await storage.get(mdKey)
+    reply.header('content-type', 'text/markdown; charset=utf-8')
+    return body.toString('utf8')
+  } catch (e: any) {
+    if ((e as any)?.statusCode === 404 || (e as any)?.code === 'ENOENT') return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'markdown not found' } })
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+// Serve structure JSON blob
+app.get('/ingestion/blob/:doc_id/structure', async (req, reply) => {
+  const params = req.params as { doc_id: string }
+  const docId = params.doc_id
+  const structKey = `artifacts/${docId}/structure.json`
+  try {
+    const { body } = await storage.get(structKey)
+    const json = JSON.parse(body.toString('utf8'))
+    reply.header('content-type', 'application/json; charset=utf-8')
+    return json
+  } catch (e: any) {
+    if ((e as any)?.statusCode === 404 || (e as any)?.code === 'ENOENT') return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'structure not found' } })
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
   }
 })

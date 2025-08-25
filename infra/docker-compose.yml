@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: talvra_postgres
     environment:
-      POSTGRES_USER: talvra
-      POSTGRES_PASSWORD: talvra
-      POSTGRES_DB: talvra
+      POSTGRES_USER: "${POSTGRES_USER:-talvra}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-talvra}"
+      POSTGRES_DB: "${POSTGRES_DB:-talvra}"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -33,7 +33,7 @@ services:
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:3.30.0
     container_name: talvra_azurite
-    command: ["azurite", "--blobHost", "0.0.0.0", "--location", "/data", "--debug", "/dev/null"]
+    command: ["azurite", "--blobHost", "0.0.0.0", "--location", "/data", "--debug", "/dev/null", "--skipApiVersionCheck"]
     ports:
       - "${AZURITE_BLOB_PORT:-10000}:10000"
     volumes:
@@ -72,6 +72,8 @@ services:
       context: ..
       dockerfile: frontend/web/Dockerfile
     container_name: talvra_web
+    env_file:
+      - .env
     depends_on:
       api-gateway:
         condition: service_started
@@ -105,7 +107,6 @@ services:
         condition: service_started
     ports:
       - "4020:4020"
-
   canvas-service:
     build:
       context: ..
