@@ -94,6 +94,19 @@ services:
     ports:
       - "4010:4010"
 
+  ai-service:
+    build:
+      context: ..
+      dockerfile: services/ai-service/Dockerfile
+    container_name: talvra_ai_service
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_started
+    ports:
+      - "4020:4020"
   canvas-service:
     build:
       context: ..
