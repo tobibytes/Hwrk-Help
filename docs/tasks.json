@@ -219,7 +219,7 @@
             "title": "feat(auth) service skeleton and basic auth endpoints",
             "body": "What: endpoints and migrations. Tests: signup and login curl."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T023",
