@@ -1,5 +1,4 @@
-import { TalvraCard, TalvraStack, TalvraText, TalvraButton } from '@ui';
-import { useQueryClient } from '@tanstack/react-query';
+import { TalvraStack, TalvraText, TalvraButton } from '@ui';
 import { useAPI } from '@api';
 import { useState } from 'react';
 
@@ -23,12 +22,7 @@ function googleLogin() {
   window.location.href = `${API_BASE}/api/auth/google/start?redirect=${encodeURIComponent(redirect)}`;
 }
 
-async function doLogout() {
-  await fetchJSON(`${API_BASE}/api/auth/logout`, { method: 'POST' });
-}
-
-export function AuthPanel() {
-  const qc = useQueryClient();
+export function CanvasTokenSettings() {
   const meQ = useAPI<{ ok: true; user: { id: string; email: string; google_sub: string | null; created_at: string } }>(
     ['me'],
     () => fetchJSON(`${API_BASE}/api/auth/me`),
@@ -36,9 +30,7 @@ export function AuthPanel() {
   );
 
   const isAuthed = meQ.data?.ok === true;
-  const email = meQ.data?.user?.email;
 
-  // Canvas token state (never fetched/displayed after save)
   const [canvasToken, setCanvasToken] = useState('');
   const [canvasStatus, setCanvasStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -85,33 +77,37 @@ export function AuthPanel() {
   }
 
   return (
-    <TalvraCard>
-      <TalvraStack>
-        <TalvraText as="h3">Authentication</TalvraText>
-        {!isAuthed ? (
+    <TalvraStack>
+      <TalvraText as="h4" style={{ marginTop: 16 }}>Canvas connection</TalvraText>
+      {!isAuthed ? (
+        <TalvraStack>
+          <TalvraText>You are not logged in.</TalvraText>
+          <TalvraButton onClick={googleLogin}>Login with Google</TalvraButton>
+        </TalvraStack>
+      ) : (
+        <TalvraStack>
+          <TalvraText>
+            Provide your Canvas personal access token. Your institution base URL is fixed. We encrypt your token and never display it again.
+          </TalvraText>
+          <input
+            type="password"
+            placeholder="Enter Canvas access token"
+            value={canvasToken}
+            onChange={(e) => setCanvasToken(e.target.value)}
+            style={{ padding: 8, border: '1px solid #ddd', borderRadius: 6, width: '100%' }}
+          />
           <TalvraStack>
-            <TalvraText>You are not logged in.</TalvraText>
-            <TalvraButton onClick={googleLogin}>Login with Google</TalvraButton>
-          </TalvraStack>
-        ) : (
-          <TalvraStack>
-            <TalvraText>Logged in as {email}</TalvraText>
-            <TalvraButton
-              onClick={async () => {
-                await doLogout();
-                await qc.invalidateQueries({ queryKey: ['me'] });
-              }}
-            >
-              Logout
+            <TalvraButton disabled={busy || canvasToken.trim() === ''} onClick={saveCanvasToken}>
+              Save token
             </TalvraButton>
-
-            <TalvraText as="h4" style={{ marginTop: 16 }}>Canvas connection</TalvraText>
-            <TalvraText>
-              Manage your Canvas personal access token in Settings.
-            </TalvraText>
+            <TalvraButton disabled={busy} onClick={clearCanvasToken}>
+              Clear token
+            </TalvraButton>
           </TalvraStack>
-        )}
-      </TalvraStack>
-    </TalvraCard>
+          {canvasStatus && <TalvraText>{canvasStatus}</TalvraText>}
+        </TalvraStack>
+      )}
+    </TalvraStack>
   );
 }
+
