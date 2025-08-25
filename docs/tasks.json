@@ -333,7 +333,7 @@
             "title": "feat(ingestion) service skeleton with Redis stream",
             "body": "What: endpoints and queue."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T041",
@@ -350,7 +350,7 @@
             "title": "feat(ingestion) extract PDF and DOCX to md and json",
             "body": "What: adapters and storage. Tests: fixture run."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T042",
