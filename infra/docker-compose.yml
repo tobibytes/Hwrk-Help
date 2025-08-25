@@ -44,18 +44,8 @@ services:
       context: ..
       dockerfile: services/auth-service/Dockerfile
     container_name: talvra_auth_service
-    environment:
-      DATABASE_URL: postgresql://talvra:talvra@postgres:5432/talvra
-      AUTH_SERVICE_HOST: 0.0.0.0
-      AUTH_SERVICE_PORT: 4001
-      AUTH_SESSION_COOKIE: talvra.sid
-      AUTH_COOKIE_SECRET: ${AUTH_COOKIE_SECRET:-dev-secret}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3001/api/auth/google/callback}
-      AUTH_GOOGLE_SCOPES: ${AUTH_GOOGLE_SCOPES:-openid email profile}
-      AUTH_GOOGLE_ALLOWED_HD: ${AUTH_GOOGLE_ALLOWED_HD:-morgan.edu}
-      CANVAS_TOKEN_SECRET: ${CANVAS_TOKEN_SECRET:-dev-canvas-secret}
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_started
@@ -68,13 +58,8 @@ services:
       context: ..
       dockerfile: services/api-gateway/Dockerfile
     container_name: talvra_api_gateway
-    environment:
-      API_GATEWAY_HOST: 0.0.0.0
-      API_GATEWAY_PORT: 3001
-      AUTH_SERVICE_URL: http://auth-service:4001
-      FRONTEND_ORIGIN: http://localhost:5173
-      INGESTION_SERVICE_URL: http://ingestion-service:4010
-      AI_SERVICE_URL: http://ai-service:4020
+    env_file:
+      - .env
     depends_on:
       auth-service:
         condition: service_started
@@ -98,15 +83,8 @@ services:
       context: ..
       dockerfile: services/ingestion-service/Dockerfile
     container_name: talvra_ingestion_service
-    environment:
-      INGESTION_SERVICE_HOST: 0.0.0.0
-      INGESTION_SERVICE_PORT: 4010
-      REDIS_URL: redis://redis:6379
-      INGEST_STREAM: ingest.request
-      INGEST_STORAGE_PROVIDER: ${INGEST_STORAGE_PROVIDER:-local}
-      INGEST_OUTPUT_DIR: ./services/ingestion-service/out
-      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING:-}
-      AZURE_STORAGE_CONTAINER: ${AZURE_STORAGE_CONTAINER:-talvra}
+    env_file:
+      - .env
     depends_on:
       redis:
         condition: service_started
@@ -119,10 +97,8 @@ services:
       context: ..
       dockerfile: services/ai-service/Dockerfile
     container_name: talvra_ai_service
-    environment:
-      AI_SERVICE_HOST: 0.0.0.0
-      AI_SERVICE_PORT: 4020
-      AI_OUTPUT_DIR: ./services/ai-service/out
+    env_file:
+      - .env
     restart: unless-stopped
     depends_on:
       api-gateway:
@@ -135,13 +111,8 @@ services:
       context: ..
       dockerfile: services/canvas-service/Dockerfile
     container_name: talvra_canvas_service
-    environment:
-      CANVAS_SERVICE_HOST: 0.0.0.0
-      CANVAS_SERVICE_PORT: 4002
-      CANVAS_DATABASE_URL: postgresql://talvra:talvra@postgres:5432/talvra
-      PGHOST: postgres
-      CANVAS_TOKEN_SECRET: ${CANVAS_TOKEN_SECRET:-dev-canvas-secret}
-      CANVAS_BASE_URL: ${CANVAS_BASE_URL:-}
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_started
