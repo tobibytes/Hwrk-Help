@@ -77,6 +77,26 @@ await app.register(httpProxy as any, {
   }
 })
 
+// Proxy to ai-service
+const AI_UPSTREAM_HOST = process.env.AI_SERVICE_HOST ?? 'ai-service'
+const AI_UPSTREAM_PORT = Number(process.env.AI_SERVICE_PORT ?? 4020)
+const AI_UPSTREAM_DEFAULT = `http://${AI_UPSTREAM_HOST}:${AI_UPSTREAM_PORT}`
+const AI_UPSTREAM = process.env.AI_SERVICE_URL ?? AI_UPSTREAM_DEFAULT
+
+await app.register(httpProxy as any, {
+  upstream: AI_UPSTREAM,
+  prefix: '/api/ai',
+  rewritePrefix: '/ai',
+  rewriteHeaders: (headers: Record<string, string>, req: any) => {
+    const origin = req.headers?.origin
+    if (origin && origin === FRONTEND_ORIGIN) {
+      headers['access-control-allow-origin'] = origin
+      headers['access-control-allow-credentials'] = 'true'
+    }
+    return headers
+  }
+})
+
 // Proxy to media-service
 const MEDIA_UPSTREAM_HOST = process.env.MEDIA_SERVICE_HOST ?? 'media-service'
 const MEDIA_UPSTREAM_PORT = Number(process.env.MEDIA_SERVICE_PORT ?? 4030)

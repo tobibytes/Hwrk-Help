@@ -74,7 +74,10 @@ export default function DocumentDetailArea() {
           </TalvraStack>
         </TalvraCard>
 
-        <TalvraLink href="/documents">Back to Documents</TalvraLink>
+        <TalvraStack>
+          <TalvraLink href="/documents">Back to Documents</TalvraLink>
+          <TalvraLink href={`/documents/${documentId}/ai`}>View AI outputs</TalvraLink>
+        </TalvraStack>
       </TalvraStack>
     </TalvraSurface>
   );
