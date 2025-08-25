@@ -5,6 +5,7 @@ export { TalvraText, type TalvraTextProps } from './TalvraText';
 export { TalvraButton, type TalvraButtonProps } from './TalvraButton';
 export { TalvraCard, type TalvraCardProps } from './TalvraCard';
 export { TalvraLink, type TalvraLinkProps } from './TalvraLink';
+export { Video, type VideoProps } from './Video';
 
 // Export theme
 export { theme, type Theme } from './theme';
