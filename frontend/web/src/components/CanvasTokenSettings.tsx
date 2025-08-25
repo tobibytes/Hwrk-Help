@@ -32,6 +32,7 @@ export function CanvasTokenSettings() {
   const isAuthed = meQ.data?.ok === true;
 
   const [canvasToken, setCanvasToken] = useState('');
+  const [canvasBaseUrl, setCanvasBaseUrl] = useState('');
   const [canvasStatus, setCanvasStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -41,7 +42,7 @@ export function CanvasTokenSettings() {
     try {
       await fetchJSON(`${API_BASE}/api/auth/canvas/token`, {
         method: 'PUT',
-        body: JSON.stringify({ token: canvasToken.trim() }),
+        body: JSON.stringify({ token: canvasToken.trim(), base_url: canvasBaseUrl.trim() || undefined }),
       });
       // quick validation call
       try {
@@ -89,6 +90,13 @@ export function CanvasTokenSettings() {
           <TalvraText>
             Provide your Canvas personal access token. Your institution base URL is fixed. We encrypt your token and never display it again.
           </TalvraText>
+          <input
+            type="url"
+            placeholder="Canvas base URL (optional, e.g., https://morganstate.instructure.com)"
+            value={canvasBaseUrl}
+            onChange={(e) => setCanvasBaseUrl(e.target.value)}
+            style={{ padding: 8, border: '1px solid #ddd', borderRadius: 6, width: '100%' }}
+          />
           <input
             type="password"
             placeholder="Enter Canvas access token"
