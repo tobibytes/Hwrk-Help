@@ -1,0 +1,2 @@
+Hello from TXT extractor
+Line 2

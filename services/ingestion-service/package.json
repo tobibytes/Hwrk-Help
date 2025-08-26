@@ -13,7 +13,10 @@
     "ioredis": "^5.4.1",
     "mammoth": "^1.6.0",
     "pdf-parse": "^1.1.1",
-    "@azure/storage-blob": "^12.23.0"
+    "@azure/storage-blob": "^12.23.0",
+    "turndown": "^7.1.2",
+    "unzipper": "^0.11.4",
+    "fast-xml-parser": "^4.4.1"
   },
   "devDependencies": {
     "@types/node": "^20.19.11",
