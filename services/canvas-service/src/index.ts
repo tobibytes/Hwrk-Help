@@ -86,7 +86,7 @@ async function fetchAll<T>(url: string, token: string): Promise<T[]> {
     items.push(...data)
     const link = res.headers.get('link') || res.headers.get('Link')
     if (!link) { nextUrl = null; break }
-    const m = /<([^>]+)>;\s*rel="next"/i.exec(link)
+    const m = /<([^>]+)>;\s*rel=\"next\"/i.exec(link)
     nextUrl = m ? m[1] : null
   }
   return items
@@ -103,7 +103,6 @@ app.get('/canvas/courses', async (req, reply) => {
       const courses = list.map((c: any) => ({ id: String(c.id), name: c.name, term: null as string | null }))
       return { ok: true, courses }
     }
-  }
 
   // Fallback: fixtures-backed DB
   const { rows: countRows } = await pool.query('SELECT COUNT(*)::int AS c FROM courses')
