@@ -95,18 +95,23 @@ function cosine(a: number[], b: number[]): number {
 }
 
 app.post('/ai/embed', async (req, reply) => {
-  const body = (req.body ?? {}) as { doc_id?: string }
+  const body = (req.body ?? {}) as { doc_id?: string; force?: boolean }
   const docId = body.doc_id?.trim()
+  const force = Boolean(body.force)
   if (!docId) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'doc_id required' } })
   try {
     await fs.mkdir(OUTPUT_DIR, { recursive: true })
+    const outPath = path.join(OUTPUT_DIR, `${docId}.embeddings.json`)
+    const exists = await fs.access(outPath).then(() => true).catch(() => false)
+    if (exists && !force) {
+      return { ok: true, doc_id: docId, skipped: 'exists' }
+    }
     const mdRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/blob/${encodeURIComponent(docId)}/markdown`)
     if (!mdRes.ok) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'markdown not found' } })
     const text = await mdRes.text()
     const chunks = chunkText(text)
     const vecs = await embedTexts(chunks)
     const payload = { doc_id: docId, model: OPENAI_EMBED_MODEL, chunks: chunks.map((t, i) => ({ id: `${docId}-${i}`, text: t, vector: vecs[i] })) }
-    const outPath = path.join(OUTPUT_DIR, `${docId}.embeddings.json`)
     await fs.writeFile(outPath, JSON.stringify(payload), 'utf8')
     return { ok: true, doc_id: docId, count: chunks.length }
   } catch (e: any) {

@@ -104,6 +104,7 @@ app.get('/canvas/courses', async (req, reply) => {
       const courses = list.map((c: any) => ({ id: String(c.id), name: c.name, term: null as string | null }))
       return { ok: true, courses }
     }
+  }
 
   // Fallback: fixtures-backed DB
   const { rows: countRows } = await pool.query('SELECT COUNT(*)::int AS c FROM courses')
@@ -250,8 +251,8 @@ app.post('/canvas/sync', async (req, reply) => {
           const existing = await pool.query('SELECT id, doc_id FROM canvas_documents WHERE content_hash = $1', [hash])
           if (existing.rowCount && existing.rows.length > 0) { skipped++; continue }
 
-          const mime = (fileMeta?."content-type" ?? fileMeta?.content_type ?? fileResp.headers.get('content-type') ?? null) as string | null
-          const size = (fileMeta?.size ?? Number(fileResp.headers.get('content-length') || '0') || null) as number | null
+          const mime = (((fileMeta?.["content-type"] ?? fileMeta?.content_type) ?? fileResp.headers.get('content-type')) ?? null) as string | null
+          const size = (fileMeta?.size ?? Number(fileResp.headers.get('content-length') || '0')) as number | null
 
           // Create record and trigger ingestion
           const docId = `canvas-${courseId}-${moduleItemCanvasId}-${hash.slice(0, 8)}`
@@ -275,19 +276,25 @@ app.post('/canvas/sync', async (req, reply) => {
             app.log.warn({ status: ingestRes.status }, 'ingestion start failed')
           } else {
             processed++
-            // Trigger embeddings for this doc (best-effort; idempotency to be added later)
-            try {
-              const reqId = (req.headers['x-request-id'] as string) || (req as any).id
-              const embedRes = await fetch(`${AI_BASE.replace(/\/$/, '')}/ai/embed`, {
-                method: 'POST',
-                headers: { 'content-type': 'application/json', ...(reqId ? { 'x-request-id': reqId } : {}) },
-                body: JSON.stringify({ doc_id: docId })
-              })
-              if (!embedRes.ok) {
-                app.log.warn({ status: embedRes.status, docId }, 'ai embed trigger failed')
+            // Trigger embeddings for this doc (best-effort; idempotency handled by AI service; include simple retries)
+            const reqId = (req.headers['x-request-id'] as string) || (req as any).id
+            const embedUrl = `${AI_BASE.replace(/\/$/, '')}/ai/embed`
+            const headers: Record<string, string> = { 'content-type': 'application/json' }
+            if (reqId) headers['x-request-id'] = reqId
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              try {
+                const embedRes = await fetch(embedUrl, {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({ doc_id: docId })
+                })
+                if (embedRes.ok) break
+                app.log.warn({ status: embedRes.status, attempt, docId }, 'ai embed trigger failed')
+              } catch (e) {
+                app.log.warn({ err: e, attempt, docId }, 'ai embed trigger error')
               }
-            } catch (e) {
-              app.log.warn({ err: e, docId }, 'ai embed trigger error')
+              // backoff: 250ms, 500ms
+              await new Promise((r) => setTimeout(r, 250 * attempt))
             }
           }
         } catch (err) {
