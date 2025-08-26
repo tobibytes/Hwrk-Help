@@ -13,6 +13,7 @@ const CANVAS_PORT = Number(process.env.CANVAS_SERVICE_PORT ?? 4002)
 // Always default to docker network host 'postgres' inside container
 const DATABASE_URL = process.env.CANVAS_DATABASE_URL || 'postgresql://talvra:talvra@postgres:5432/talvra'
 const INGESTION_BASE = process.env.INGESTION_SERVICE_URL || 'http://ingestion-service:4010'
+const AI_BASE = process.env.AI_SERVICE_URL || 'http://ai-service:4020'
 
 const pool = new Pool({ connectionString: DATABASE_URL })
 
@@ -274,6 +275,20 @@ app.post('/canvas/sync', async (req, reply) => {
             app.log.warn({ status: ingestRes.status }, 'ingestion start failed')
           } else {
             processed++
+            // Trigger embeddings for this doc (best-effort; idempotency to be added later)
+            try {
+              const reqId = (req.headers['x-request-id'] as string) || (req as any).id
+              const embedRes = await fetch(`${AI_BASE.replace(/\/$/, '')}/ai/embed`, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', ...(reqId ? { 'x-request-id': reqId } : {}) },
+                body: JSON.stringify({ doc_id: docId })
+              })
+              if (!embedRes.ok) {
+                app.log.warn({ status: embedRes.status, docId }, 'ai embed trigger failed')
+              }
+            } catch (e) {
+              app.log.warn({ err: e, docId }, 'ai embed trigger error')
+            }
           }
         } catch (err) {
           app.log.warn({ err }, 'item processing failed')
