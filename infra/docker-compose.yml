@@ -78,7 +78,7 @@ services:
       api-gateway:
         condition: service_started
     ports:
-      - "5173:5173"
+      - "80:80"
 
   ingestion-service:
     build:

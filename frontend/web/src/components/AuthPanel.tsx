@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAPI } from '@api';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
-
+// console.log('P: ', process.env.VITE_API_BASE);
 async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { ...(init?.headers as any) };
   if (init?.body && !Object.keys(headers).some((k) => k.toLowerCase() === 'content-type')) {
