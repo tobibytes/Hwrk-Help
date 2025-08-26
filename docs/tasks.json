@@ -626,7 +626,27 @@
             "title": "feat(web): course detail with documents and assignments",
             "body": "What: new UI page; How: calls Canvas endpoints; Actions: links to doc pages."
           },
-          "completed": false
+          "completed": true
+        },
+        {
+          "id": "T076",
+          "title": "Per-course sync endpoint and UI wiring",
+          "branch": "backend/canvas-sync-course",
+          "paths": ["services/canvas-service/**", "frontend/web/src/Areas/Courses/Detail.tsx"],
+          "steps": [
+            "Add POST /canvas/sync/course/:course_id to sync a single course",
+            "Update Course Detail 'Sync now' button to call per-course endpoint and refresh lists"
+          ],
+          "run": ["curl -X POST /api/canvas/sync/course/123"],
+          "acceptance": [
+            "Per-course sync succeeds and new docs appear for that course only",
+            "Course Detail 'Sync now' refreshes documents and assignments"
+          ],
+          "pr": {
+            "title": "feat(canvas+web): per-course sync endpoint and Course Detail wiring",
+            "body": "What: backend per-course sync + front wiring; Why: tighter UX control."
+          },
+          "completed": true
         },
         {
           "id": "T071",

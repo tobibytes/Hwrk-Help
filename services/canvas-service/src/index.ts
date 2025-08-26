@@ -213,6 +213,94 @@ app.get('/canvas/assignments', async (req, reply) => {
   }
 })
 
+app.post('/canvas/sync/course/:course_id', async (req, reply) => {
+  const creds = await getUserCanvasCreds(req)
+  if (!creds) return reply.code(400).send({ error: { code: 'UNAUTHENTICATED', message: 'Canvas token/base URL not configured' } })
+  const courseId = (req.params as any)?.course_id ? String((req.params as any).course_id) : ''
+  if (!courseId) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'course_id required' } })
+
+  let processed = 0
+  let skipped = 0
+  try {
+    const modules = await fetchAll<any>(
+      `${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/modules?per_page=50`,
+      creds.token
+    )
+
+    for (const mod of modules) {
+      const moduleCanvasId = String(mod.id)
+      const items = await fetchAll<any>(
+        `${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/modules/${mod.id}/items?per_page=100`,
+        creds.token
+      )
+      for (const item of items) {
+        try {
+          if (item?.type !== 'File') { skipped++; continue }
+          const moduleItemCanvasId = String(item.id)
+          const fileId = String(item.content_id ?? '')
+
+          let fileMeta: any = null
+          const fileRes = await fetch(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/files/${fileId}`, {
+            headers: { authorization: `Bearer ${creds.token}` }
+          })
+          if (fileRes.ok) {
+            fileMeta = await fileRes.json()
+          } else {
+            const alt = await fetch(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/files/${fileId}`, { headers: { authorization: `Bearer ${creds.token}` } })
+            if (alt.ok) fileMeta = await alt.json()
+          }
+          if (!fileMeta) { skipped++; continue }
+
+          const downloadUrl: string | undefined = fileMeta?.url || fileMeta?.download_url
+          const filename: string = fileMeta?.filename || fileMeta?.display_name || item?.title || `file-${fileId}`
+          if (!downloadUrl) { skipped++; continue }
+
+          const fileResp = await fetch(downloadUrl, { headers: { authorization: `Bearer ${creds.token}` } })
+          if (!fileResp.ok) { skipped++; continue }
+          const buf = Buffer.from(await fileResp.arrayBuffer())
+          const hash = createHash('sha256').update(buf).digest('hex')
+
+          const existing = await pool.query('SELECT id, doc_id FROM canvas_documents WHERE content_hash = $1', [hash])
+          if (existing.rowCount && existing.rows.length > 0) { skipped++; continue }
+
+          const mime = (((fileMeta?.["content-type"] ?? fileMeta?.content_type) ?? fileResp.headers.get('content-type')) ?? null) as string | null
+          const size = (fileMeta?.size ?? Number(fileResp.headers.get('content-length') || '0')) as number | null
+
+          const docId = `canvas-${courseId}-${moduleItemCanvasId}-${hash.slice(0, 8)}`
+          await pool.query(
+            'INSERT INTO canvas_documents (course_canvas_id, module_canvas_id, module_item_canvas_id, attachment_canvas_id, title, mime_type, size_bytes, content_hash, doc_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (content_hash) DO NOTHING',
+            [courseId, moduleCanvasId, moduleItemCanvasId, fileId, filename, mime, size, hash, docId]
+          )
+
+          const ingestRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/start`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              url: downloadUrl,
+              filename,
+              doc_id: docId,
+              bearer_token: creds.token,
+              context: { course_id: courseId, module_id: moduleCanvasId, module_item_id: moduleItemCanvasId }
+            })
+          })
+          if (!ingestRes.ok) {
+            app.log.warn({ status: ingestRes.status }, 'ingestion start failed')
+          } else {
+            processed++
+          }
+        } catch (err) {
+          app.log.warn({ err }, 'item processing failed')
+          skipped++
+        }
+      }
+    }
+
+    return { ok: true, result: { course_id: courseId, processed, skipped } }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
 app.post('/canvas/sync', async (req, reply) => {
   const creds = await getUserCanvasCreds(req)
   if (!creds) return reply.code(400).send({ error: { code: 'UNAUTHENTICATED', message: 'Canvas token/base URL not configured' } })

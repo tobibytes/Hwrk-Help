@@ -79,13 +79,11 @@ export default function CourseDetailArea() {
     setSyncBusy(true);
     setSyncMsg(null);
     try {
-      const res = await postJSON<{ ok: true; results: Array<{ course_id: string; processed: number; skipped: number }> }>(
-        `${API_BASE}/api/canvas/sync`,
+      const res = await postJSON<{ ok: true; result: { course_id: string; processed: number; skipped: number } }>(
+        `${API_BASE}/api/canvas/sync/course/${encodeURIComponent(courseId || '')}`,
         {}
       );
-      const totalProcessed = res.results.reduce((a, r) => a + (r.processed || 0), 0);
-      const totalSkipped = res.results.reduce((a, r) => a + (r.skipped || 0), 0);
-      setSyncMsg(`Sync done: processed ${totalProcessed}, skipped ${totalSkipped} across ${res.results.length} courses.`);
+      setSyncMsg(`Sync done: processed ${res.result.processed}, skipped ${res.result.skipped} for course ${res.result.course_id}.`);
       await Promise.all([loadDocs(), loadAssignments()]);
     } catch (e: any) {
       setSyncMsg(`Sync failed: ${String(e?.message || e)}`);
