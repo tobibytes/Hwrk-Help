@@ -127,26 +127,6 @@ app.post('/ai/embed', async (req, reply) => {
   }
 })
 
-  const q = ((req.query as any)?.q ?? '').toString().trim()
-  const docId = ((req.query as any)?.doc_id ?? '').toString().trim() || null
-  const kRaw = Number((req.query as any)?.k ?? 5)
-  const k = Number.isFinite(kRaw) ? Math.max(1, Math.min(kRaw, 20)) : 5
-  if (!q) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'q required' } })
-  try {
-    if (!docId) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'doc_id required (per-doc search for now)' } })
-    const embPath = path.join(OUTPUT_DIR, `${docId}.embeddings.json`)
-    const exists = await fs.access(embPath).then(() => true).catch(() => false)
-    if (!exists) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'no embeddings for doc (run /ai/embed first)' } })
-    const payload = JSON.parse(await fs.readFile(embPath, 'utf8')) as { chunks: Array<{ id: string; text: string; vector: number[] }> }
-    const qVec = (await embedTexts([q]))[0]
-    const scored = payload.chunks.map((c) => ({ id: c.id, text: c.text, score: cosine(qVec, c.vector) }))
-    scored.sort((a, b) => b.score - a.score)
-    const top = scored.slice(0, k).map((s) => ({ id: s.id, doc_id: docId, score: s.score, snippet: s.text.slice(0, 300) + (s.text.length > 300 ? ' …' : '') }))
-    return { ok: true, q, results: top }
-  } catch (e: any) {
-    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
-  }
-})
 
 // Serve AI output blobs
 app.get('/ai/blob/:doc_id/notes', async (req, reply) => {
