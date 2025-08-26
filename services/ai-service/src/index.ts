@@ -7,7 +7,11 @@ const app = Fastify({ logger: { level: 'info' } })
 // Env
 const HOST = process.env.AI_SERVICE_HOST ?? '0.0.0.0'
 const PORT = Number(process.env.AI_SERVICE_PORT ?? 4020)
-const OUTPUT_DIR = process.env.AI_OUTPUT_DIR ?? path.resolve(process.cwd(), 'out')
+const OUTPUT_DIR = (() => {
+  const v = process.env.AI_OUTPUT_DIR
+  if (!v) return path.resolve(process.cwd(), 'out')
+  return path.isAbsolute(v) ? v : path.resolve(process.cwd(), v)
+})()
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
 const OPENAI_EMBED_MODEL = process.env.OPENAI_EMBED_MODEL || 'text-embedding-3-small'
 const INGESTION_BASE = process.env.INGESTION_SERVICE_URL || 'http://ingestion-service:4010'
@@ -17,7 +21,8 @@ app.get('/ai/health', async () => ({ ok: true }))
 app.post('/ai/start', async (req, reply) => {
   const id = (req.headers['x-request-id'] as string) || req.id
   const body = (req.body ?? {}) as { doc_id?: string; markdown?: string }
-  const docId = body.doc_id || 'unknown'
+  const docId = (body.doc_id || 'unknown').trim()
+  if (!docId) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'doc_id required' } })
 
   try {
     await fs.mkdir(OUTPUT_DIR, { recursive: true })
@@ -29,7 +34,9 @@ app.post('/ai/start', async (req, reply) => {
     await fs.writeFile(notesPath, notes, 'utf8')
     await fs.writeFile(cardsPath, JSON.stringify(flashcards, null, 2), 'utf8')
 
-    return { ok: true, doc_id: docId, outputs: { notes: notesPath, flashcards: cardsPath } }
+    // Return logical blob URLs via gateway path
+    const base = '/api/ai'
+    return { ok: true, doc_id: docId, outputs: { notes: `${base}/blob/${encodeURIComponent(docId)}/notes`, flashcards: `${base}/blob/${encodeURIComponent(docId)}/flashcards` } }
   } catch (e: any) {
     req.log.error({ err: e }, 'ai start failed')
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
@@ -45,7 +52,8 @@ app.get('/ai/result/:doc_id', async (req, reply) => {
     const existsNotes = await fs.access(notesPath).then(() => true).catch(() => false)
     const existsCards = await fs.access(cardsPath).then(() => true).catch(() => false)
     if (!existsNotes || !existsCards) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'results not found' } })
-    return { ok: true, outputs: { notes: notesPath, flashcards: cardsPath } }
+    const base = '/api/ai'
+    return { ok: true, outputs: { notes: `${base}/blob/${encodeURIComponent(docId)}/notes`, flashcards: `${base}/blob/${encodeURIComponent(docId)}/flashcards` } }
   } catch (e: any) {
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
   }
@@ -115,6 +123,34 @@ app.post('/ai/embed', async (req, reply) => {
     await fs.writeFile(outPath, JSON.stringify(payload), 'utf8')
     return { ok: true, doc_id: docId, count: chunks.length }
   } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+
+// Serve AI output blobs
+app.get('/ai/blob/:doc_id/notes', async (req, reply) => {
+  const { doc_id } = req.params as { doc_id: string }
+  const notesPath = path.join(OUTPUT_DIR, `${doc_id}.notes.md`)
+  try {
+    const buf = await fs.readFile(notesPath)
+    reply.header('content-type', 'text/markdown; charset=utf-8')
+    return buf.toString('utf8')
+  } catch (e: any) {
+    if ((e as any)?.code === 'ENOENT') return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'notes not found' } })
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+app.get('/ai/blob/:doc_id/flashcards', async (req, reply) => {
+  const { doc_id } = req.params as { doc_id: string }
+  const cardsPath = path.join(OUTPUT_DIR, `${doc_id}.flashcards.json`)
+  try {
+    const json = JSON.parse(await fs.readFile(cardsPath, 'utf8'))
+    reply.header('content-type', 'application/json; charset=utf-8')
+    return json
+  } catch (e: any) {
+    if ((e as any)?.code === 'ENOENT') return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'flashcards not found' } })
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
   }
 })
