@@ -34,7 +34,7 @@ async function bootstrapDb() {
     ALTER TABLE courses ADD COLUMN IF NOT EXISTS created_at timestamptz;
     ALTER TABLE courses ALTER COLUMN created_at SET DEFAULT now();
 
-    -- Documents synced from Canvas attachments/module items (minimal schema for dedupe and linkage)
+    -- Documents synced from Canvas attachments/module items (schema with linkage & metadata)
     CREATE TABLE IF NOT EXISTS canvas_documents (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       course_canvas_id text,
@@ -43,10 +43,14 @@ async function bootstrapDb() {
       module_item_canvas_id text,
       attachment_canvas_id text,
       title text,
+      mime_type text,
+      size_bytes bigint,
       content_hash text UNIQUE,
       doc_id text UNIQUE,
       created_at timestamptz DEFAULT now()
     );
+    ALTER TABLE canvas_documents ADD COLUMN IF NOT EXISTS mime_type text;
+    ALTER TABLE canvas_documents ADD COLUMN IF NOT EXISTS size_bytes bigint;
   `)
 }
 
@@ -72,18 +76,32 @@ async function getUserCanvasCreds(req: any): Promise<{ token: string; baseUrl: s
   return null
 }
 
+async function fetchAll<T>(url: string, token: string): Promise<T[]> {
+  const items: T[] = []
+  let nextUrl: string | null = url
+  while (nextUrl) {
+    const res = await fetch(nextUrl, { headers: { authorization: `Bearer ${token}` } })
+    if (!res.ok) break
+    const data = (await res.json()) as T[]
+    items.push(...data)
+    const link = res.headers.get('link') || res.headers.get('Link')
+    if (!link) { nextUrl = null; break }
+    const m = /<([^>]+)>;\s*rel="next"/i.exec(link)
+    nextUrl = m ? m[1] : null
+  }
+  return items
+}
+
 app.get('/canvas/courses', async (req, reply) => {
   const creds = await getUserCanvasCreds(req)
   if (creds) {
-    const res = await fetch(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses?per_page=50`, {
-      headers: { authorization: `Bearer ${creds.token}` }
-    })
-    if (res.ok) {
-      const data = (await res.json()) as Array<{ id: number; name: string }>
-      const courses = data.map((c) => ({ id: String(c.id), name: c.name, term: null as string | null }))
+    const list = await fetchAll<Array<{ id: number; name: string }>>(
+      `${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses?per_page=50`,
+      creds.token
+    )
+    if (list.length > 0) {
+      const courses = list.map((c: any) => ({ id: String(c.id), name: c.name, term: null as string | null }))
       return { ok: true, courses }
-    } else if (res.status === 401 || res.status === 403) {
-      return reply.code(401).send({ error: { code: 'UNAUTHENTICATED', message: 'invalid Canvas token' } })
     }
   }
 
@@ -105,41 +123,40 @@ app.post('/canvas/sync', async (req, reply) => {
   const creds = await getUserCanvasCreds(req)
   if (!creds) return reply.code(400).send({ error: { code: 'UNAUTHENTICATED', message: 'Canvas token/base URL not configured' } })
 
-  // Fetch courses to sync
-  const coursesRes = await fetch(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses?per_page=50`, {
-    headers: { authorization: `Bearer ${creds.token}` }
-  })
-  if (!coursesRes.ok) return reply.code(coursesRes.status).send({ error: { code: 'CANVAS_ERROR', message: 'failed to list courses' } })
-  const courses = (await coursesRes.json()) as Array<{ id: number; name: string }>
+  // Fetch all courses for user
+  const courseList = await fetchAll<Array<{ id: number; name: string }>>(
+    `${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses?per_page=50`,
+    creds.token
+  )
+  if (!courseList || courseList.length === 0) return { ok: true, results: [] }
 
   const results: Array<{ course_id: string; processed: number; skipped: number }> = []
 
-  for (const course of courses) {
-    const courseId = String(course.id)
+  for (const course of courseList) {
+    const courseId = String((course as any).id)
     let processed = 0
     let skipped = 0
 
-    // List modules with items (best-effort; ignores pagination for now)
-    const modsRes = await fetch(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${courseId}/modules?per_page=50&include%5B%5D=items`, {
-      headers: { authorization: `Bearer ${creds.token}` }
-    })
-    if (!modsRes.ok) {
-      app.log.warn({ status: modsRes.status }, 'failed to list modules')
-      results.push({ course_id: courseId, processed, skipped })
-      continue
-    }
-    const modules = (await modsRes.json()) as Array<any>
+    // Fetch modules (paginated)
+    const modules = await fetchAll<any>(
+      `${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${courseId}/modules?per_page=50`,
+      creds.token
+    )
 
     for (const mod of modules) {
       const moduleCanvasId = String(mod.id)
-      const items = Array.isArray(mod.items) ? mod.items as Array<any> : []
+      // Fetch module items separately with pagination
+      const items = await fetchAll<any>(
+        `${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${courseId}/modules/${mod.id}/items?per_page=100`,
+        creds.token
+      )
       for (const item of items) {
         try {
           if (item?.type !== 'File') { skipped++; continue }
           const moduleItemCanvasId = String(item.id)
           const fileId = String(item.content_id ?? '')
 
-          // Fetch file metadata to get a download URL
+          // Fetch file metadata to get a download URL and metadata
           let fileMeta: any = null
           const fileRes = await fetch(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${courseId}/files/${fileId}`, {
             headers: { authorization: `Bearer ${creds.token}` }
@@ -157,7 +174,7 @@ app.post('/canvas/sync', async (req, reply) => {
           const filename: string = fileMeta?.filename || fileMeta?.display_name || item?.title || `file-${fileId}`
           if (!downloadUrl) { skipped++; continue }
 
-          // Download file to compute content hash (best-effort; assume presigned URL may not need token)
+          // Download file to compute content hash
           const fileResp = await fetch(downloadUrl, { headers: { authorization: `Bearer ${creds.token}` } })
           if (!fileResp.ok) { skipped++; continue }
           const buf = Buffer.from(await fileResp.arrayBuffer())
@@ -167,11 +184,14 @@ app.post('/canvas/sync', async (req, reply) => {
           const existing = await pool.query('SELECT id, doc_id FROM canvas_documents WHERE content_hash = $1', [hash])
           if (existing.rowCount && existing.rows.length > 0) { skipped++; continue }
 
+          const mime = (fileMeta?."content-type" ?? fileMeta?.content_type ?? fileResp.headers.get('content-type') ?? null) as string | null
+          const size = (fileMeta?.size ?? Number(fileResp.headers.get('content-length') || '0') || null) as number | null
+
           // Create record and trigger ingestion
           const docId = `canvas-${courseId}-${moduleItemCanvasId}-${hash.slice(0, 8)}`
           await pool.query(
-            'INSERT INTO canvas_documents (course_canvas_id, module_canvas_id, module_item_canvas_id, attachment_canvas_id, title, content_hash, doc_id) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (content_hash) DO NOTHING',
-            [courseId, moduleCanvasId, moduleItemCanvasId, fileId, filename, hash, docId]
+            'INSERT INTO canvas_documents (course_canvas_id, module_canvas_id, module_item_canvas_id, attachment_canvas_id, title, mime_type, size_bytes, content_hash, doc_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (content_hash) DO NOTHING',
+            [courseId, moduleCanvasId, moduleItemCanvasId, fileId, filename, mime, size, hash, docId]
           )
 
           const ingestRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/start`, {
@@ -181,6 +201,7 @@ app.post('/canvas/sync', async (req, reply) => {
               url: downloadUrl,
               filename,
               doc_id: docId,
+              bearer_token: creds.token,
               context: { course_id: courseId, module_id: moduleCanvasId, module_item_id: moduleItemCanvasId }
             })
           })
