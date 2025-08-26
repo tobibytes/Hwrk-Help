@@ -587,6 +587,48 @@
           "completed": true
         },
         {
+          "id": "T074",
+          "title": "Canvas assignments endpoint and per-course documents filter",
+          "branch": "backend/canvas-assignments-endpoint",
+          "paths": ["services/canvas-service/**"],
+          "steps": [
+            "Extend GET /canvas/documents to accept course_id filter",
+            "Add GET /canvas/assignments?course_id to fetch assignments via Canvas API"
+          ],
+          "run": ["curl /api/canvas/assignments?course_id=123"],
+          "acceptance": [
+            "/canvas/documents returns only documents for the course when filtered",
+            "/canvas/assignments returns id,name,due_at,html_url for assignments"
+          ],
+          "pr": {
+            "title": "feat(canvas): assignments endpoint + per-course documents filter",
+            "body": "What: backend endpoints to support course detail UI."
+          },
+          "completed": true
+        },
+        {
+          "id": "T075",
+          "title": "Frontend course detail: documents and assignments",
+          "branch": "web/course-docs-assignments",
+          "paths": ["frontend/web/src/Areas/Courses/**", "frontend/web/src/app/AppRoutes.tsx"],
+          "steps": [
+            "Add /courses/:courseId route",
+            "Show documents for course using /api/canvas/documents?course_id",
+            "Show assignments for course using /api/canvas/assignments?course_id",
+            "Link Courses list to course detail"
+          ],
+          "run": ["pnpm -C frontend --filter web dev"],
+          "acceptance": [
+            "Navigating to a course shows documents and assignments",
+            "Document actions navigate to document detail/AI/Video"
+          ],
+          "pr": {
+            "title": "feat(web): course detail with documents and assignments",
+            "body": "What: new UI page; How: calls Canvas endpoints; Actions: links to doc pages."
+          },
+          "completed": false
+        },
+        {
           "id": "T071",
           "title": "Notification service and reminders",
           "branch": "backend/notify-reminders",

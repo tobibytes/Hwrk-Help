@@ -8,6 +8,7 @@ import DocumentsArea from '@/Areas/Documents';
 import DocumentDetailArea from '@/Areas/Documents/Detail';
 import DocumentAIArea from '@/Areas/Documents/AI';
 import DocumentVideoArea from '@/Areas/Documents/Video';
+import CourseDetailArea from '@/Areas/Courses/Detail';
 
 // Create router configuration
 const router = createBrowserRouter([
@@ -32,6 +33,14 @@ const router = createBrowserRouter([
     element: (
       <Suspense fallback={<div>Loading...</div>}>
         <CoursesArea />
+      </Suspense>
+    ),
+  },
+  {
+    path: buildPath(FRONT_ROUTES.COURSE_DETAIL, { courseId: ':courseId' }),
+    element: (
+      <Suspense fallback={<div>Loading...</div>}>
+        <CourseDetailArea />
       </Suspense>
     ),
   },

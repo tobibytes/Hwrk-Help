@@ -123,10 +123,16 @@ app.get('/canvas/documents', async (req, reply) => {
     const q = (req.query as any) ?? {}
     const limitRaw = Number(q.limit ?? 50)
     const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(limitRaw, 200)) : 50
-    const { rows } = await pool.query(
-      'SELECT doc_id, title, course_canvas_id, module_canvas_id, module_item_canvas_id, mime_type, size_bytes, created_at FROM canvas_documents ORDER BY created_at DESC LIMIT $1',
-      [limit]
-    )
+    const courseId = (q.course_id ? String(q.course_id).trim() : '') || null
+    let sql = 'SELECT doc_id, title, course_canvas_id, module_canvas_id, module_item_canvas_id, mime_type, size_bytes, created_at FROM canvas_documents'
+    const params: any[] = []
+    if (courseId) {
+      sql += ' WHERE course_canvas_id = $1'
+      params.push(courseId)
+    }
+    sql += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1)
+    params.push(limit)
+    const { rows } = await pool.query(sql, params)
     return { ok: true, documents: rows }
   } catch (e: any) {
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
@@ -179,6 +185,27 @@ app.get('/canvas/search', async (req, reply) => {
     }
 
     return { ok: true, q, results }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+app.get('/canvas/assignments', async (req, reply) => {
+  try {
+    const courseId = ((req.query as any)?.course_id ?? '').toString().trim()
+    if (!courseId) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'course_id required' } })
+    const creds = await getUserCanvasCreds(req)
+    if (!creds) return reply.code(401).send({ error: { code: 'UNAUTHENTICATED', message: 'Canvas token/base URL not configured' } })
+    const list = await fetchAll<any>(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/assignments?per_page=50`, creds.token)
+    const assignments = list.map((a: any) => ({
+      id: String(a.id),
+      name: a.name ?? a.name ?? 'Untitled',
+      due_at: a.due_at ?? null,
+      html_url: a.html_url ?? null,
+      created_at: a.created_at ?? null,
+      updated_at: a.updated_at ?? null,
+    }))
+    return { ok: true, assignments }
   } catch (e: any) {
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
   }

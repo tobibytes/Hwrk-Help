@@ -65,6 +65,9 @@ export default function CoursesArea() {
                         <TalvraText as="h4">{c.name}</TalvraText>
                         <TalvraText>ID: {c.id}</TalvraText>
                         {c.term && <TalvraText>Term: {c.term}</TalvraText>}
+                        <TalvraLink href={buildPath(FRONT_ROUTES.COURSE_DETAIL, { courseId: c.id })}>
+                          View course
+                        </TalvraLink>
                       </TalvraStack>
                     </TalvraCard>
                   ))
