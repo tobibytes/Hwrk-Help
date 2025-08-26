@@ -21,22 +21,83 @@ app.get('/ai/health', async () => ({ ok: true }))
 app.post('/ai/start', async (req, reply) => {
   const id = (req.headers['x-request-id'] as string) || req.id
   const body = (req.body ?? {}) as { doc_id?: string; markdown?: string }
-  const docId = (body.doc_id || 'unknown').trim()
-  if (!docId) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'doc_id required' } })
+  const docId = (body.doc_id ?? '').trim()
+  if (!docId && !(body.markdown && body.markdown.trim())) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'doc_id or markdown required' } })
+
+  const AI_GENERATION = (process.env.AI_GENERATION || 'stub').toLowerCase()
+  const OPENAI_CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini'
 
   try {
     await fs.mkdir(OUTPUT_DIR, { recursive: true })
-    const notes = `# Notes for ${docId}\n\nThis is a mock summary.\n`
-    const flashcards = [{ q: 'What is X?', a: 'X is Y.' }]
 
-    const notesPath = path.join(OUTPUT_DIR, `${docId}.notes.md`)
-    const cardsPath = path.join(OUTPUT_DIR, `${docId}.flashcards.json`)
+    // Acquire markdown: body.markdown takes precedence; otherwise fetch from ingestion by doc_id
+    let markdown = (body.markdown || '').trim()
+    if (!markdown) {
+      const mdRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/blob/${encodeURIComponent(docId)}/markdown`)
+      if (!mdRes.ok) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'markdown not found for doc' } })
+      markdown = await mdRes.text()
+    }
+
+    let notes: string
+    let flashcards: Array<{ q: string; a: string; hint?: string }>
+
+    if (AI_GENERATION === 'real' && OPENAI_API_KEY) {
+      // Trim markdown to avoid context overflow
+      const MAX_CHARS = 12000
+      const input = markdown.length > MAX_CHARS ? markdown.slice(0, MAX_CHARS) : markdown
+
+      // Generate notes
+      const notesPrompt = [
+        { role: 'system', content: 'You are a concise study assistant. Produce clear, well-structured markdown notes (headings, bullets) that explain concepts. Avoid giving answers to graded questions; focus on understanding.' },
+        { role: 'user', content: `Create study notes in markdown for the following material. Use headings and bullet points.\n\n---\n${input}` }
+      ]
+      const notesRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: OPENAI_CHAT_MODEL, temperature: 0.2, messages: notesPrompt })
+      })
+      if (!notesRes.ok) throw new Error(`OpenAI notes failed: ${notesRes.status}`)
+      const notesJson = await notesRes.json()
+      notes = (notesJson.choices?.[0]?.message?.content || '').trim() || '# Notes\n\n(Empty)'
+
+      // Generate flashcards
+      const cardsPrompt = [
+        { role: 'system', content: 'You create helpful study flashcards. Return ONLY a JSON array of objects with keys q (question), a (answer), and optional hint. Avoid exam answers; focus on concepts.' },
+        { role: 'user', content: `Based on this material, create 8-12 flashcards. Return JSON only.\n\n---\n${input}` }
+      ]
+      const cardsRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify({ model: OPENAI_CHAT_MODEL, temperature: 0.3, messages: cardsPrompt, response_format: { type: 'json_object' } })
+      })
+      if (!cardsRes.ok) throw new Error(`OpenAI flashcards failed: ${cardsRes.status}`)
+      const cardsJson = await cardsRes.json()
+      let raw = (cardsJson.choices?.[0]?.message?.content || '').trim()
+      // Parse JSON. It could be array or object with an array
+      try {
+        const parsed = JSON.parse(raw)
+        flashcards = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.flashcards) ? parsed.flashcards : [])
+      } catch {
+        // fallback minimal card
+        flashcards = [{ q: 'What is the main idea?', a: 'Refer to notes.' }]
+      }
+      // Ensure shape
+      flashcards = flashcards.map((c: any) => ({ q: String(c.q || c.question || ''), a: String(c.a || c.answer || ''), hint: c.hint ? String(c.hint) : undefined })).filter((c) => c.q && c.a)
+      if (flashcards.length === 0) flashcards = [{ q: 'What is the main idea?', a: 'Refer to notes.' }]
+    } else {
+      // Stub generation
+      notes = `# Notes for ${docId || '(manual)'}\n\nThis is a mock summary.\n`
+      flashcards = [{ q: 'What is X?', a: 'X is Y.' }]
+    }
+
+    const effectiveDocId = docId || `manual-${Date.now()}`
+    const notesPath = path.join(OUTPUT_DIR, `${effectiveDocId}.notes.md`)
+    const cardsPath = path.join(OUTPUT_DIR, `${effectiveDocId}.flashcards.json`)
     await fs.writeFile(notesPath, notes, 'utf8')
     await fs.writeFile(cardsPath, JSON.stringify(flashcards, null, 2), 'utf8')
 
-    // Return logical blob URLs via gateway path
     const base = '/api/ai'
-    return { ok: true, doc_id: docId, outputs: { notes: `${base}/blob/${encodeURIComponent(docId)}/notes`, flashcards: `${base}/blob/${encodeURIComponent(docId)}/flashcards` } }
+    return { ok: true, doc_id: effectiveDocId, outputs: { notes: `${base}/blob/${encodeURIComponent(effectiveDocId)}/notes`, flashcards: `${base}/blob/${encodeURIComponent(effectiveDocId)}/flashcards` } }
   } catch (e: any) {
     req.log.error({ err: e }, 'ai start failed')
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
