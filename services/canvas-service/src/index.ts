@@ -133,6 +133,57 @@ app.get('/canvas/documents', async (req, reply) => {
   }
 })
 
+app.get('/canvas/search', async (req, reply) => {
+  try {
+    const q = ((req.query as any)?.q ?? '').toString().trim()
+    if (!q) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'q required' } })
+    const courseId = ((req.query as any)?.course_id ?? '').toString().trim() || null
+    const moduleId = ((req.query as any)?.module_id ?? '').toString().trim() || null
+    const limitRaw = Number((req.query as any)?.limit ?? 10)
+    const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(limitRaw, 20)) : 10
+
+    // Filter docs by course/module if provided
+    const params: any[] = []
+    let where = '1=1'
+    if (courseId) { params.push(courseId); where += ` AND course_canvas_id = $${params.length}` }
+    if (moduleId) { params.push(moduleId); where += ` AND module_canvas_id = $${params.length}` }
+
+    const { rows } = await pool.query(
+      `SELECT doc_id, title FROM canvas_documents WHERE ${where} ORDER BY created_at DESC LIMIT $${params.length + 1}`,
+      [...params, limit]
+    )
+
+    const results: Array<{ doc_id: string; title: string | null; snippet: string }> = []
+    const term = q.toLowerCase()
+
+    for (const row of rows) {
+      const docId = (row as any).doc_id as string
+      // Fetch markdown via ingestion-service
+      try {
+        const mdRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/blob/${encodeURIComponent(docId)}/markdown`)
+        if (!mdRes.ok) continue
+        const text = (await mdRes.text()) || ''
+        const lower = text.toLowerCase()
+        const idx = lower.indexOf(term)
+        if (idx >= 0) {
+          const start = Math.max(0, idx - 80)
+          const end = Math.min(text.length, idx + q.length + 120)
+          let snippet = text.slice(start, end).replace(/\s+/g, ' ').trim()
+          if (start > 0) snippet = '… ' + snippet
+          if (end < text.length) snippet = snippet + ' …'
+          results.push({ doc_id: docId, title: (row as any).title ?? null, snippet })
+        }
+      } catch (_) {
+        // ignore fetch failures
+      }
+    }
+
+    return { ok: true, q, results }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
 app.post('/canvas/sync', async (req, reply) => {
   const creds = await getUserCanvasCreds(req)
   if (!creds) return reply.code(400).send({ error: { code: 'UNAUTHENTICATED', message: 'Canvas token/base URL not configured' } })
