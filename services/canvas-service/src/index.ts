@@ -18,6 +18,9 @@ const AI_BASE = process.env.AI_SERVICE_URL || 'http://ai-service:4020'
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://redis:6379'
 const SYNC_STREAM = process.env.CANVAS_SYNC_STREAM ?? 'canvas.sync.request'
 const SYNC_GROUP = process.env.CANVAS_SYNC_GROUP ?? 'canvas_sync_cg'
+// Feature flags for expanded Canvas coverage (default on)
+const INCLUDE_FILES = (process.env.CANVAS_SYNC_INCLUDE_FILES ?? 'true').toLowerCase() === 'true'
+const INCLUDE_PAGES = (process.env.CANVAS_SYNC_INCLUDE_PAGES ?? 'true').toLowerCase() === 'true'
 
 const pool = new Pool({ connectionString: DATABASE_URL })
 const redis = new Redis(REDIS_URL)
@@ -532,6 +535,90 @@ app.post('/canvas/sync', async (req, reply) => {
       }
     }
 
+    // Course Files (top-level)
+    if (INCLUDE_FILES) {
+      const files = await fetchAll<any>(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/files?per_page=50`, creds.token)
+      for (const f of files) {
+        try {
+          const fileId = String(f.id)
+          const downloadUrl: string | undefined = f.url || f.download_url
+          const filename: string = f.filename || f.display_name || f.title || `file-${fileId}`
+          if (!downloadUrl) { skipped++; continue }
+          const fileResp = await fetch(downloadUrl, { headers: { authorization: `Bearer ${creds.token}` } })
+          if (!fileResp.ok) { skipped++; continue }
+          const buf = Buffer.from(await fileResp.arrayBuffer())
+          const hash = createHash('sha256').update(buf).digest('hex')
+          const existing = await pool.query('SELECT id, doc_id FROM canvas_documents WHERE content_hash = $1', [hash])
+          if (existing.rowCount && existing.rows.length > 0) { skipped++; continue }
+          const mime = (((f?.["content-type"] ?? f?.content_type) ?? fileResp.headers.get('content-type')) ?? null) as string | null
+          const size = (f?.size ?? Number(fileResp.headers.get('content-length') || '0')) as number | null
+          const docId = `canvas-${courseId}-file-${fileId}-${hash.slice(0, 8)}`
+          await pool.query(
+            'INSERT INTO canvas_documents (course_canvas_id, module_canvas_id, module_item_canvas_id, attachment_canvas_id, title, mime_type, size_bytes, content_hash, doc_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (content_hash) DO NOTHING',
+            [courseId, null, null, fileId, filename, mime, size, hash, docId]
+          )
+          const ingestRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/start`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ url: downloadUrl, filename, doc_id: docId, bearer_token: creds.token, context: { course_id: courseId } })
+          })
+          if (!ingestRes.ok) { skipped++; continue }
+          processed++
+          // Trigger embeddings (idempotent)
+          const reqId = (req.headers['x-request-id'] as string) || (req as any).id
+          const embedUrl = `${AI_BASE.replace(/\/$/, '')}/ai/embed`
+          const headers: Record<string, string> = { 'content-type': 'application/json' }
+          if (reqId) headers['x-request-id'] = reqId
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try { const r = await fetch(embedUrl, { method: 'POST', headers, body: JSON.stringify({ doc_id: docId }) }); if (r.ok) break } catch {}
+            await new Promise((r) => setTimeout(r, 250 * attempt))
+          }
+        } catch { skipped++ }
+      }
+    }
+
+    // Pages (HTML)
+    if (INCLUDE_PAGES) {
+      const pages = await fetchAll<any>(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/pages?per_page=50`, creds.token)
+      for (const p of pages) {
+        try {
+          const slug = (p.url || p.page_id || p.slug || p.title || 'page').toString()
+          const pageRes = await fetch(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/pages/${encodeURIComponent(p.url || slug)}`, { headers: { authorization: `Bearer ${creds.token}` } })
+          if (!pageRes.ok) { skipped++; continue }
+          const pageJson = await pageRes.json()
+          const html: string = (pageJson?.body ?? '').toString()
+          if (!html || html.length === 0) { skipped++; continue }
+          const buf = Buffer.from(html, 'utf8')
+          const hash = createHash('sha256').update(buf).digest('hex')
+          const existing = await pool.query('SELECT id, doc_id FROM canvas_documents WHERE content_hash = $1', [hash])
+          if (existing.rowCount && existing.rows.length > 0) { skipped++; continue }
+          const filename = `page-${slug}.html`
+          const dataUrl = `data:text/html;charset=utf-8;base64,${buf.toString('base64')}`
+          const docId = `canvas-${courseId}-page-${slug}-${hash.slice(0, 8)}`
+          await pool.query(
+            'INSERT INTO canvas_documents (course_canvas_id, module_canvas_id, module_item_canvas_id, attachment_canvas_id, title, mime_type, size_bytes, content_hash, doc_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (content_hash) DO NOTHING',
+            [courseId, null, null, null, pageJson?.title || slug, 'text/html', Buffer.byteLength(buf), hash, docId]
+          )
+          const ingestRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/start`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ url: dataUrl, filename, doc_id: docId, context: { course_id: courseId } })
+          })
+          if (!ingestRes.ok) { skipped++; continue }
+          processed++
+          // Trigger embeddings (idempotent)
+          const reqId = (req.headers['x-request-id'] as string) || (req as any).id
+          const embedUrl = `${AI_BASE.replace(/\/$/, '')}/ai/embed`
+          const headers: Record<string, string> = { 'content-type': 'application/json' }
+          if (reqId) headers['x-request-id'] = reqId
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try { const r = await fetch(embedUrl, { method: 'POST', headers, body: JSON.stringify({ doc_id: docId }) }); if (r.ok) break } catch {}
+            await new Promise((r) => setTimeout(r, 250 * attempt))
+          }
+        } catch { skipped++ }
+      }
+    }
+
     results.push({ course_id: courseId, processed, skipped })
   }
 
@@ -602,14 +689,14 @@ async function syncSingleCourse(courseId: string, token: string, baseUrl: string
   let skipped = 0
   // Fetch modules
   const modules = await fetchAll<any>(`${baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/modules?per_page=50`, token)
-  for (const mod of modules) {
-    const moduleCanvasId = String(mod.id)
-    const items = await fetchAll<any>(`${baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/modules/${mod.id}/items?per_page=100`, token)
-    for (const item of items) {
-      try {
-        if (item?.type !== 'File') { skipped++; continue }
-        const moduleItemCanvasId = String(item.id)
-        const fileId = String(item.content_id ?? '')
+    for (const mod of modules) {
+      const moduleCanvasId = String(mod.id)
+      const items = await fetchAll<any>(`${baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/modules/${mod.id}/items?per_page=100`, token)
+      for (const item of items) {
+        try {
+          if (item?.type !== 'File') { skipped++; continue }
+          const moduleItemCanvasId = String(item.id)
+          const fileId = String(item.content_id ?? '')
         // File metadata
         let fileMeta: any = null
         const fileRes = await fetch(`${baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/files/${fileId}`, { headers: { authorization: `Bearer ${token}` } })
@@ -661,12 +748,93 @@ async function syncSingleCourse(courseId: string, token: string, baseUrl: string
         }
       } catch (_) {
         skipped++
+        }
       }
     }
   }
+
+  // Course Files (top-level), optional via flag
+  if (INCLUDE_FILES) {
+    const files = await fetchAll<any>(`${baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/files?per_page=50`, token)
+    for (const f of files) {
+      try {
+        const fileId = String(f.id)
+        const downloadUrl: string | undefined = f.url || f.download_url
+        const filename: string = f.filename || f.display_name || f.title || `file-${fileId}`
+        if (!downloadUrl) { skipped++; continue }
+        const fileResp = await fetch(downloadUrl, { headers: { authorization: `Bearer ${token}` } })
+        if (!fileResp.ok) { skipped++; continue }
+        const buf = Buffer.from(await fileResp.arrayBuffer())
+        const hash = createHash('sha256').update(buf).digest('hex')
+        const existing = await pool.query('SELECT id, doc_id FROM canvas_documents WHERE content_hash = $1', [hash])
+        if (existing.rowCount && existing.rows.length > 0) { skipped++; continue }
+        const mime = (((f?.["content-type"] ?? f?.content_type) ?? fileResp.headers.get('content-type')) ?? null) as string | null
+        const size = (f?.size ?? Number(fileResp.headers.get('content-length') || '0')) as number | null
+        const docId = `canvas-${courseId}-file-${fileId}-${hash.slice(0, 8)}`
+        await pool.query(
+          'INSERT INTO canvas_documents (course_canvas_id, module_canvas_id, module_item_canvas_id, attachment_canvas_id, title, mime_type, size_bytes, content_hash, doc_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (content_hash) DO NOTHING',
+          [courseId, null, null, fileId, filename, mime, size, hash, docId]
+        )
+        const ingestRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/start`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url: downloadUrl, filename, doc_id: docId, bearer_token: token, context: { course_id: courseId } })
+        })
+        if (!ingestRes.ok) { skipped++; continue }
+        processed++
+        // Trigger embeddings (idempotent)
+        const embedUrl = `${AI_BASE.replace(/\/$/, '')}/ai/embed`
+        const headers: Record<string, string> = { 'content-type': 'application/json', 'x-request-id': requestId }
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try { const r = await fetch(embedUrl, { method: 'POST', headers, body: JSON.stringify({ doc_id: docId }) }); if (r.ok) break } catch {}
+          await new Promise((r) => setTimeout(r, 250 * attempt))
+        }
+      } catch { skipped++ }
+    }
+  }
+
+  // Pages (HTML), optional via flag
+  if (INCLUDE_PAGES) {
+    const pages = await fetchAll<any>(`${baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/pages?per_page=50`, token)
+    for (const p of pages) {
+      try {
+        const slug = (p.url || p.page_id || p.slug || p.title || 'page').toString()
+        const pageRes = await fetch(`${baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/pages/${encodeURIComponent(p.url || slug)}`, { headers: { authorization: `Bearer ${token}` } })
+        if (!pageRes.ok) { skipped++; continue }
+        const pageJson = await pageRes.json()
+        const html: string = (pageJson?.body ?? '').toString()
+        if (!html || html.length === 0) { skipped++; continue }
+        const buf = Buffer.from(html, 'utf8')
+        const hash = createHash('sha256').update(buf).digest('hex')
+        const existing = await pool.query('SELECT id, doc_id FROM canvas_documents WHERE content_hash = $1', [hash])
+        if (existing.rowCount && existing.rows.length > 0) { skipped++; continue }
+        const filename = `page-${slug}.html`
+        const dataUrl = `data:text/html;charset=utf-8;base64,${buf.toString('base64')}`
+        const docId = `canvas-${courseId}-page-${slug}-${hash.slice(0, 8)}`
+        await pool.query(
+          'INSERT INTO canvas_documents (course_canvas_id, module_canvas_id, module_item_canvas_id, attachment_canvas_id, title, mime_type, size_bytes, content_hash, doc_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (content_hash) DO NOTHING',
+          [courseId, null, null, null, pageJson?.title || slug, 'text/html', Buffer.byteLength(buf), hash, docId]
+        )
+        const ingestRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/start`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url: dataUrl, filename, doc_id: docId, context: { course_id: courseId } })
+        })
+        if (!ingestRes.ok) { skipped++; continue }
+        processed++
+        // Trigger embeddings (idempotent)
+        const embedUrl = `${AI_BASE.replace(/\/$/, '')}/ai/embed`
+        const headers: Record<string, string> = { 'content-type': 'application/json', 'x-request-id': requestId }
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try { const r = await fetch(embedUrl, { method: 'POST', headers, body: JSON.stringify({ doc_id: docId }) }); if (r.ok) break } catch {}
+          await new Promise((r) => setTimeout(r, 250 * attempt))
+        }
+      } catch { skipped++ }
+    }
+  }
+
   return { processed, skipped }
 }
-
 async function syncAllCourses(token: string, baseUrl: string, requestId: string): Promise<{ processed: number; skipped: number }> {
   let processed = 0
   let skipped = 0
