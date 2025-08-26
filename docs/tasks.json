@@ -414,7 +414,7 @@
             "title": "feat(ingestion): T044 add TXT/MD, HTML-to-text, and PPTX extractors",
             "body": "Why: broaden supported file types from Canvas. How: new extractors; graceful skips; docs updated."
           },
-          "completed": false
+          "completed": true
         }
       ]
     },
