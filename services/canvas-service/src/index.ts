@@ -101,6 +101,21 @@ app.get('/canvas/courses', async (req, reply) => {
   return { ok: true, courses: rows }
 })
 
+app.get('/canvas/documents', async (req, reply) => {
+  try {
+    const q = (req.query as any) ?? {}
+    const limitRaw = Number(q.limit ?? 50)
+    const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(limitRaw, 200)) : 50
+    const { rows } = await pool.query(
+      'SELECT doc_id, title, course_canvas_id, module_canvas_id, module_item_canvas_id, mime_type, size_bytes, created_at FROM canvas_documents ORDER BY created_at DESC LIMIT $1',
+      [limit]
+    )
+    return { ok: true, documents: rows }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
 app.post('/canvas/sync', async (req, reply) => {
   const creds = await getUserCanvasCreds(req)
   if (!creds) return reply.code(400).send({ error: { code: 'UNAUTHENTICATED', message: 'Canvas token/base URL not configured' } })

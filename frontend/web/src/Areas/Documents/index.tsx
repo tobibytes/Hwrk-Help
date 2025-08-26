@@ -1,12 +1,78 @@
 import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
+import { useEffect, useState } from 'react';
+
+const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
+
+async function fetchJSON<T>(url: string): Promise<T> {
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+  return (await res.json()) as T;
+}
+
+interface DocRow {
+  doc_id: string;
+  title: string | null;
+  course_canvas_id: string | null;
+  module_canvas_id: string | null;
+  module_item_canvas_id: string | null;
+  mime_type: string | null;
+  size_bytes: number | null;
+  created_at: string;
+}
 
 export default function DocumentsArea() {
+  const [docs, setDocs] = useState<DocRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setError(null);
+      try {
+        const data = await fetchJSON<{ ok: true; documents: DocRow[] }>(`${API_BASE}/api/canvas/documents?limit=100`);
+        if (!cancelled) setDocs(data.documents);
+      } catch (e: any) {
+        if (!cancelled) setError(String(e?.message || e));
+      }
+    })();
+    return () => { cancelled = true };
+  }, []);
+
   return (
     <TalvraSurface>
       <TalvraStack>
         <TalvraText as="h1">Documents</TalvraText>
-        <TalvraText>After you start ingestion, processed documents will appear here.</TalvraText>
+        {error && <TalvraText>Error loading documents: {error}</TalvraText>}
+
+        <TalvraCard>
+          <TalvraStack>
+            <TalvraText as="h3">Recent documents</TalvraText>
+            {docs === null ? (
+              <TalvraText>Loading…</TalvraText>
+            ) : docs.length === 0 ? (
+              <TalvraText>No documents found yet. Try Settings → Sync now after saving your Canvas token.</TalvraText>
+            ) : (
+              <TalvraStack>
+                {docs.map((d) => (
+                  <TalvraCard key={d.doc_id}>
+                    <TalvraStack>
+                      <TalvraText as="h4">{d.title ?? d.doc_id}</TalvraText>
+                      <TalvraStack>
+                        <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}`}>Open</TalvraLink>
+                        <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}/ai`}>AI</TalvraLink>
+                        <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}/video`}>Video</TalvraLink>
+                      </TalvraStack>
+                      <TalvraText style={{ color: '#64748b' }}>
+                        {d.mime_type ?? 'unknown'} • {d.size_bytes ? `${d.size_bytes} bytes` : 'size unknown'} • {new Date(d.created_at).toLocaleString()}
+                      </TalvraText>
+                    </TalvraStack>
+                  </TalvraCard>
+                ))}
+              </TalvraStack>
+            )}
+          </TalvraStack>
+        </TalvraCard>
 
         <TalvraCard>
           <TalvraStack>
