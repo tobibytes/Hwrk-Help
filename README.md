@@ -181,6 +181,41 @@ Once services are running:
 - API Gateway: `curl localhost:3001/health`
 - Auth Service: `curl localhost:4001/auth/health`
 
+## RAG/Embeddings quickstart (dev)
+
+- Optional: set OPENAI_API_KEY in infra/.env to use real embeddings (defaults to deterministic fallback for local dev)
+
+1) Extract a sample PDF via ingestion service (through gateway):
+
+```bash
+curl -X POST http://localhost:3001/api/ingestion/start \
+  -H 'content-type: application/json' \
+  --data '{
+    "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+    "filename": "dummy.pdf",
+    "doc_id": "dummy"
+  }'
+```
+
+2) Compute embeddings for that doc:
+
+```bash
+curl -X POST http://localhost:3001/api/ai/embed \
+  -H 'content-type: application/json' \
+  --data '{ "doc_id": "dummy" }'
+```
+
+3) Semantic search within the document:
+
+```bash
+curl "http://localhost:3001/api/ai/search?doc_id=dummy&q=dummy&k=3"
+```
+
+Notes:
+- In Docker, services reach each other via Docker DNS names (postgres, redis, azurite, ingestion-service, ai-service, etc.). Avoid localhost from inside containers.
+- Ingestion stores markdown/structure via the configured storage provider (LocalFs or Azurite/Azure).
+- The AI service stores embeddings in a JSON file under AI_OUTPUT_DIR for now.
+
 ---
 
 Built with ❤️ for better learning experiences.
