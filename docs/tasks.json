@@ -702,6 +702,32 @@
       ]
     },
     {
+      "name": "Phase 7.5 - Document UX enhancements",
+      "tasks": [
+        {
+          "id": "T077",
+          "title": "Document Detail: Embed + Semantic Search UI",
+          "branch": "web/doc-embed-search",
+          "paths": ["frontend/web/src/Areas/Documents/Detail.tsx"],
+          "steps": [
+            "Add button to call POST /api/ai/embed for current document",
+            "Add per-doc search input calling GET /api/ai/search?doc_id=...&q=...&k=...",
+            "Render results with score and snippet"
+          ],
+          "run": ["Open /documents/:documentId, click Compute embeddings, then search"],
+          "acceptance": [
+            "Embeddings compute succeeds or returns skipped if already present",
+            "Search returns top-k snippets for the doc and displays them"
+          ],
+          "pr": {
+            "title": "feat(web): Document Detail embeds + semantic search UI",
+            "body": "What: embed and search controls on Document Detail; How: calls ai-service endpoints via gateway."
+          },
+          "completed": false
+        }
+      ]
+    },
+    {
       "name": "Phase 8 - Canvas real OAuth and ingestion bridge",
       "tasks": [
         {
