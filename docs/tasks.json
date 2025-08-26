@@ -456,6 +456,32 @@
           "completed": true
         },
         {
+          "id": "T052a",
+          "title": "AI generation v1 behind flag + blob endpoints",
+          "branch": "backend/ai-generation-v1",
+          "paths": ["services/ai-service/**", "infra/.env.example", "services/api-gateway/**"],
+          "steps": [
+            "Add real OpenAI-powered generation for notes and flashcards (guarded by AI_GENERATION=real)",
+            "Return gateway URLs from /ai/start and /ai/result, add blob endpoints to serve content",
+            "Add OPENAI_CHAT_MODEL and ensure AI_OUTPUT_DIR paths resolve correctly"
+          ],
+          "run": [
+            "docker compose -f infra/docker-compose.yml up -d --build ai-service",
+            "curl -X POST /api/ai/start with markdown",
+            "curl /api/ai/blob/:doc_id/notes and /api/ai/blob/:doc_id/flashcards via gateway"
+          ],
+          "acceptance": [
+            "When AI_GENERATION=real and OPENAI_API_KEY is set, notes and flashcards are contextual",
+            "Blob endpoints return correct content-types and data via the gateway",
+            "When disabled or key missing, service falls back to stub outputs"
+          ],
+          "pr": {
+            "title": "feat(ai): generation v1 behind flag + blob endpoints",
+            "body": "Enable real OpenAI-powered notes/flashcards behind AI_GENERATION=real; expose blob endpoints and return gateway URLs."
+          },
+          "completed": true
+        },
+        {
           "id": "T052",
           "title": "AI pipeline v1: chunking, generation, and guardrails",
           "branch": "backend/ai-pipeline-v1",
@@ -860,7 +886,7 @@
             "title": "feat(canvas): async sync kickoff + worker + status (no timeouts)",
             "body": "Why: avoid timeouts and let users continue working. How: enqueue to Redis Streams, background worker, status endpoint, idempotent coalescing, request-id propagation."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T085",
@@ -882,6 +908,28 @@
           "pr": {
             "title": "feat(web): async Canvas sync UI with progress",
             "body": "What: kickoff + polling progress banner on Course Detail; disables sync while running; refresh on completion."
+          },
+          "completed": true
+        },
+        {
+          "id": "T086",
+          "title": "Frontend: Settings page async Canvas sync UI with progress",
+          "branch": "web/settings-async-sync-ui",
+          "paths": ["frontend/web/src/Areas/Admin/**"],
+          "steps": [
+            "Switch Settings page sync to POST /api/canvas/sync/start",
+            "Persist job_id in localStorage and poll GET /api/canvas/sync/status/:job_id",
+            "Disable sync while running and show status banner consistent with Course Detail"
+          ],
+          "run": ["Open Settings, click Sync, observe immediate return and progress banner"],
+          "acceptance": [
+            "Settings sync returns immediately with job_id and shows progress",
+            "Progress persists on reload via localStorage job_id until completion",
+            "Button is disabled while an active job is running"
+          ],
+          "pr": {
+            "title": "feat(web): Settings page uses async Canvas sync with polling",
+            "body": "Switch Settings to kickoff endpoint, add progress banner and persistence matching Course Detail."
           },
           "completed": false
         }
