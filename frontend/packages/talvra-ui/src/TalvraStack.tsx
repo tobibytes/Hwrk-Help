@@ -6,10 +6,9 @@ export interface TalvraStackProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export const TalvraStack = styled.div<TalvraStackProps>`
-  /* Basic stack container with default column layout and spacing */
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: ${({ theme }) => theme.spacing[4]};
 `;
 
 export default TalvraStack;

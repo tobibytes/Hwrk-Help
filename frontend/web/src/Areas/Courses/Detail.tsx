@@ -233,7 +233,7 @@ useEffect(() => {
                       </TalvraText>
                       <TalvraStack>
                         {a.html_url && (
-                          <a href={a.html_url} target="_blank" rel="noreferrer">Open in Canvas</a>
+                          <TalvraLink href={a.html_url} target="_blank" rel="noreferrer">Open in Canvas</TalvraLink>
                         )}
                       </TalvraStack>
                     </TalvraStack>

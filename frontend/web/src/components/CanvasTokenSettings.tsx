@@ -1,4 +1,4 @@
-import { TalvraStack, TalvraText, TalvraButton } from '@ui';
+import { TalvraStack, TalvraText, TalvraButton, Input } from '@ui';
 import { useAPI } from '@api';
 import { useState } from 'react';
 
@@ -94,19 +94,19 @@ export function CanvasTokenSettings() {
           <TalvraText>
             Provide your Canvas personal access token. Your institution base URL is fixed. We encrypt your token and never display it again.
           </TalvraText>
-          <input
+          <Input
             type="url"
             placeholder="Canvas base URL (optional, e.g., https://morganstate.instructure.com)"
             value={canvasBaseUrl}
             onChange={(e) => setCanvasBaseUrl(e.target.value)}
-            style={{ padding: 8, border: '1px solid #ddd', borderRadius: 6, width: '100%' }}
+            fullWidth
           />
-          <input
+          <Input
             type="password"
             placeholder="Enter Canvas access token"
             value={canvasToken}
             onChange={(e) => setCanvasToken(e.target.value)}
-            style={{ padding: 8, border: '1px solid #ddd', borderRadius: 6, width: '100%' }}
+            fullWidth
           />
           <TalvraStack>
             <TalvraButton disabled={busy || canvasToken.trim() === ''} onClick={saveCanvasToken}>

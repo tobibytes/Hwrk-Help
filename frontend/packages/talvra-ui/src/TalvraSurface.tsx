@@ -6,11 +6,12 @@ export interface TalvraSurfaceProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export const TalvraSurface = styled.div<TalvraSurfaceProps>`
-  /* Basic surface container with minimal default styling */
   display: block;
-  padding: 2rem;
   min-height: 100vh;
-  background-color: #ffffff;
+  padding: 2rem;
+  background: linear-gradient(180deg, ${({ theme }) => theme.colors.gray[50]} 0%, ${({ theme }) => theme.colors.white} 100%);
+  color: ${({ theme }) => theme.colors.gray[800]};
+  transition: ${({ theme }) => theme.transitions.colors};
 `;
 
 export default TalvraSurface;

@@ -858,7 +858,7 @@
             "title": "feat(canvas): T083 expand coverage to Course Files, attachments, and Pages",
             "body": "Why: capture more learning materials. How: new sync surfaces with flags; HTML to text; ingestion+auto-embed."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T084",
@@ -1037,6 +1037,71 @@
     {
       "name": "Phase 12 - Polishing and e2e",
       "tasks": [
+        {
+          "id": "T123",
+          "title": "UI polish v1: theme-based primitives, inputs, loading, and animations",
+          "branch": "web/ui-polish-v1",
+          "paths": [
+            "frontend/packages/talvra-ui/**",
+            "frontend/web/src/app/AppRoutes.tsx",
+            "frontend/web/src/Areas/Documents/Detail.tsx",
+            "frontend/web/src/components/CanvasTokenSettings.tsx",
+            "frontend/web/src/Areas/Courses/Detail.tsx"
+          ],
+          "steps": [
+            "Style primitives (Surface, Card, Button, Link, Text) with theme tokens and transitions",
+            "Add Input, CodeBlock, and Loading components to @ui and export",
+            "Replace raw inputs and pre tags with @ui components per guidelines",
+            "Use animated Loading in Suspense fallbacks; reduce inline styles"
+          ],
+          "run": [
+            "pnpm -C frontend/web install",
+            "pnpm -C frontend/web build",
+            "pnpm -C frontend/web dev"
+          ],
+          "acceptance": [
+            "Core pages render with the updated theme and animated interactions",
+            "No raw input/pre tags remain in Areas; @ui components are used",
+            "Suspense fallbacks show the spinner from @ui"
+          ],
+          "pr": {
+            "title": "feat(web+ui): T123 UI polish v1 (theme, inputs, loading, animations)",
+            "body": "Why: improve UX and follow UI guidelines. What: themed primitives; new Input/CodeBlock/Loading; pages updated; animations added."
+          },
+          "completed": true
+        },
+        {
+          "id": "T124",
+          "title": "UI overhaul v2: AppLayout with glass header + Dashboard landing page",
+          "branch": "web/ui-overhaul-v2",
+          "paths": [
+            "frontend/packages/talvra-ui/src/GlassPanel.tsx",
+            "frontend/packages/talvra-ui/src/index.ts",
+            "frontend/web/src/components/AppLayout.tsx",
+            "frontend/web/src/app/AppRoutes.tsx",
+            "frontend/web/src/Areas/Admin/index.tsx"
+          ],
+          "steps": [
+            "Add GlassPanel primitive with backdrop blur",
+            "Create AppLayout: sticky glass header, brand, and primary navigation",
+            "Wrap all routes in AppLayout for consistent navigation",
+            "Replace Admin with Dashboard: quick actions (Sync, Courses, Documents, Settings) and Recent Documents"
+          ],
+          "run": [
+            "pnpm -C frontend/web build",
+            "pnpm -C frontend/web dev"
+          ],
+          "acceptance": [
+            "A glass header with clear navigation appears on every page",
+            "Dashboard shows quick actions and recent documents",
+            "Navigation between Dashboard, Courses, Documents, Settings is intuitive and consistent"
+          ],
+          "pr": {
+            "title": "feat(web+ui): T124 AppLayout (glass) + Dashboard landing page",
+            "body": "Apple-like glass header, clear navigation, and a functional dashboard."
+          },
+          "completed": true
+        },
         {
           "id": "T120",
           "title": "End to end demo with seeds",

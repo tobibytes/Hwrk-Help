@@ -7,38 +7,36 @@ export interface TalvraTextProps extends HTMLAttributes<HTMLElement> {
 }
 
 export const TalvraText = styled.div<TalvraTextProps>`
-  /* Basic text with semantic styling based on 'as' prop */
   display: block;
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
-  color: #374151;
-  
-  /* Heading styles when used with 'as' prop */
+  font-family: ${({ theme }) => theme.typography.fontFamily.sans.join(', ')};
+  line-height: ${({ theme }) => theme.typography.lineHeight.normal};
+  color: ${({ theme }) => theme.colors.gray[800]};
+
   ${props => props.as === 'h1' && `
-    font-size: 2.25rem;
-    font-weight: 700;
-    color: #111827;
-    margin-bottom: 0.5rem;
+    font-size: ${props.theme.typography.fontSize['4xl']};
+    font-weight: ${props.theme.typography.fontWeight.bold};
+    color: ${props.theme.colors.gray[900]};
+    margin-bottom: ${props.theme.spacing[2]};
   `}
-  
+
   ${props => props.as === 'h2' && `
-    font-size: 1.875rem;
-    font-weight: 600;
-    color: #111827;
-    margin-bottom: 0.5rem;
+    font-size: ${props.theme.typography.fontSize['3xl']};
+    font-weight: ${props.theme.typography.fontWeight.semibold};
+    color: ${props.theme.colors.gray[900]};
+    margin-bottom: ${props.theme.spacing[2]};
   `}
-  
+
   ${props => props.as === 'h3' && `
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #111827;
-    margin-bottom: 0.5rem;
+    font-size: ${props.theme.typography.fontSize['2xl']};
+    font-weight: ${props.theme.typography.fontWeight.semibold};
+    color: ${props.theme.colors.gray[900]};
+    margin-bottom: ${props.theme.spacing[2]};
   `}
-  
+
   ${props => (props.as === 'p' || !props.as) && `
-    font-size: 1rem;
-    line-height: 1.6;
+    font-size: ${props.theme.typography.fontSize.base};
+    line-height: ${props.theme.typography.lineHeight.relaxed};
   `}
 `;
 

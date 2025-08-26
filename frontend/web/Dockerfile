@@ -28,6 +28,6 @@ RUN pnpm -C web build
 FROM nginx:1.27-alpine AS runner
 COPY --from=build /app/frontend/web/dist /usr/share/nginx/html
 COPY frontend/web/nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 5173
+EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 

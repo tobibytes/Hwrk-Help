@@ -6,20 +6,19 @@ export interface TalvraLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement>
 }
 
 export const TalvraLink = styled.a<TalvraLinkProps>`
-  /* Basic link with default styling */
   display: inline;
-  color: #2563eb;
-  text-decoration: underline;
+  color: ${({ theme }) => theme.colors.primary[600]};
+  text-decoration: none;
   font-weight: 500;
-  transition: color 0.2s ease-in-out;
-  
+  transition: ${({ theme }) => theme.transitions.colors};
+
   &:hover {
-    color: #1d4ed8;
-    text-decoration: none;
+    color: ${({ theme }) => theme.colors.primary[700]};
+    text-decoration: underline;
   }
-  
+
   &:focus-visible {
-    outline: 2px solid #2563eb;
+    outline: 2px solid ${({ theme }) => theme.colors.primary[600]};
     outline-offset: 2px;
     border-radius: 2px;
   }

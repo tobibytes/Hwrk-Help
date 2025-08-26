@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, Input, CodeBlock } from '@ui';
 import { useParams } from 'react-router-dom';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
@@ -135,27 +135,27 @@ export default function DocumentDetailArea() {
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Semantic search (within this document)</TalvraText>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <input
+            <TalvraStack style={{ gap: 8 }}>
+              <Input
                 type="text"
                 placeholder="Enter search keywords…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                style={{ padding: 8, border: '1px solid #ddd', borderRadius: 6, minWidth: 260 }}
+                fullWidth
               />
-              <input
+              <Input
                 type="number"
                 min={1}
                 max={20}
                 value={k}
                 onChange={(e) => setK(Math.max(1, Math.min(Number(e.target.value) || 5, 20)))}
-                style={{ width: 80, padding: 8, border: '1px solid #ddd', borderRadius: 6 }}
                 title="Top-K"
+                style={{ width: 120 }}
               />
               <TalvraButton disabled={searchBusy || !query.trim()} onClick={onSearch}>
                 {searchBusy ? 'Searching…' : 'Search'}
               </TalvraButton>
-            </div>
+            </TalvraStack>
             {searchErr && <TalvraText>Error: {searchErr}</TalvraText>}
             {results && (
               <TalvraStack>
@@ -179,18 +179,18 @@ export default function DocumentDetailArea() {
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Structure</TalvraText>
-            <pre style={{ whiteSpace: 'pre-wrap', overflowX: 'auto', background: '#f8fafc', padding: 12, borderRadius: 8 }}>
+            <CodeBlock>
               {structure ? JSON.stringify(structure, null, 2) : 'Loading...'}
-            </pre>
+            </CodeBlock>
           </TalvraStack>
         </TalvraCard>
 
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Markdown</TalvraText>
-            <pre style={{ whiteSpace: 'pre-wrap', overflowX: 'auto', background: '#f8fafc', padding: 12, borderRadius: 8 }}>
+            <CodeBlock>
               {markdown ?? 'Loading...'}
-            </pre>
+            </CodeBlock>
           </TalvraStack>
         </TalvraCard>
 

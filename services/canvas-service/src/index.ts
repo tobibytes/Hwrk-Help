@@ -6,6 +6,15 @@ import cookie from '@fastify/cookie'
 import { createHash, randomUUID } from 'node:crypto'
 import Redis from 'ioredis'
 
+// Canvas page JSON shape used by pages endpoints
+interface CanvasPage {
+  body?: string | null
+  title?: string | null
+  url?: string | null
+  page_id?: string | number | null
+  slug?: string | null
+}
+
 const app = Fastify({ logger: true })
 
 // Env
@@ -585,8 +594,8 @@ app.post('/canvas/sync', async (req, reply) => {
           const slug = (p.url || p.page_id || p.slug || p.title || 'page').toString()
           const pageRes = await fetch(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/pages/${encodeURIComponent(p.url || slug)}`, { headers: { authorization: `Bearer ${creds.token}` } })
           if (!pageRes.ok) { skipped++; continue }
-          const pageJson = await pageRes.json()
-          const html: string = (pageJson?.body ?? '').toString()
+const pageJson = (await pageRes.json()) as CanvasPage
+        const html: string = (pageJson?.body ?? '').toString()
           if (!html || html.length === 0) { skipped++; continue }
           const buf = Buffer.from(html, 'utf8')
           const hash = createHash('sha256').update(buf).digest('hex')
@@ -748,10 +757,9 @@ async function syncSingleCourse(courseId: string, token: string, baseUrl: string
         }
       } catch (_) {
         skipped++
-        }
+      }
       }
     }
-  }
 
   // Course Files (top-level), optional via flag
   if (INCLUDE_FILES) {
@@ -801,7 +809,7 @@ async function syncSingleCourse(courseId: string, token: string, baseUrl: string
         const slug = (p.url || p.page_id || p.slug || p.title || 'page').toString()
         const pageRes = await fetch(`${baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/pages/${encodeURIComponent(p.url || slug)}`, { headers: { authorization: `Bearer ${token}` } })
         if (!pageRes.ok) { skipped++; continue }
-        const pageJson = await pageRes.json()
+const pageJson = (await pageRes.json()) as CanvasPage
         const html: string = (pageJson?.body ?? '').toString()
         if (!html || html.length === 0) { skipped++; continue }
         const buf = Buffer.from(html, 'utf8')

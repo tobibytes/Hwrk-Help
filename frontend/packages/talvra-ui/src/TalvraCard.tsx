@@ -7,12 +7,17 @@ export interface TalvraCardProps {
 }
 
 export const TalvraCard = styled.div<TalvraCardProps>`
-  /* Basic card container with minimal default styling */
   display: block;
-  background-color: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
+  background-color: ${({ theme }) => theme.colors.white};
+  border: 1px solid ${({ theme }) => theme.colors.gray[200]};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  box-shadow: ${({ theme }) => theme.shadows.sm};
+  padding: ${({ theme }) => theme.spacing[6]};
+  transition: ${({ theme }) => theme.transitions.shadow};
+
+  &:hover {
+    box-shadow: ${({ theme }) => theme.shadows.lg};
+  }
 `;
 
 export default TalvraCard;
