@@ -33,11 +33,22 @@ app.get('/health', async (req, reply) => {
   return { ok: true, request_id: requestId }
 })
 
+// Resolve upstream inside Docker reliably: if url/host is local, use Docker DNS service name
+function resolveUpstream(opts: { url?: string; host?: string; port: number; dns: string }) {
+  const { url, host, port, dns } = opts
+  const isLocal = (v?: string) => !!v && /(localhost|127\.0\.0\.1|::1|0\.0\.0\.0)/i.test(v)
+  if (url && !isLocal(url)) return url
+  if (host && !isLocal(host)) return `http://${host}:${port}`
+  return `http://${dns}:${port}`
+}
+
 // Proxy to auth-service
-const AUTH_UPSTREAM_HOST = process.env.AUTH_SERVICE_HOST ?? 'auth-service'
-const AUTH_UPSTREAM_PORT = Number(process.env.AUTH_SERVICE_PORT ?? 4001)
-const AUTH_UPSTREAM_DEFAULT = `http://${AUTH_UPSTREAM_HOST}:${AUTH_UPSTREAM_PORT}`
-const AUTH_UPSTREAM = process.env.AUTH_SERVICE_URL ?? AUTH_UPSTREAM_DEFAULT
+const AUTH_UPSTREAM = resolveUpstream({
+  url: process.env.AUTH_SERVICE_URL,
+  host: process.env.AUTH_SERVICE_HOST,
+  port: Number(process.env.AUTH_SERVICE_PORT ?? 4001),
+  dns: 'auth-service'
+})
 
 await app.register(httpProxy as any, {
   upstream: AUTH_UPSTREAM,
@@ -46,10 +57,12 @@ await app.register(httpProxy as any, {
 })
 
 // Proxy to canvas-service
-const CANVAS_UPSTREAM_HOST = process.env.CANVAS_SERVICE_HOST ?? 'canvas-service'
-const CANVAS_UPSTREAM_PORT = Number(process.env.CANVAS_SERVICE_PORT ?? 4002)
-const CANVAS_UPSTREAM_DEFAULT = `http://${CANVAS_UPSTREAM_HOST}:${CANVAS_UPSTREAM_PORT}`
-const CANVAS_UPSTREAM = process.env.CANVAS_SERVICE_URL ?? CANVAS_UPSTREAM_DEFAULT
+const CANVAS_UPSTREAM = resolveUpstream({
+  url: process.env.CANVAS_SERVICE_URL,
+  host: process.env.CANVAS_SERVICE_HOST,
+  port: Number(process.env.CANVAS_SERVICE_PORT ?? 4002),
+  dns: 'canvas-service'
+})
 
 await app.register(httpProxy as any, {
   upstream: CANVAS_UPSTREAM,
@@ -58,10 +71,12 @@ await app.register(httpProxy as any, {
 })
 
 // Proxy to ingestion-service
-const INGEST_UPSTREAM_HOST = process.env.INGESTION_SERVICE_HOST ?? 'ingestion-service'
-const INGEST_UPSTREAM_PORT = Number(process.env.INGESTION_SERVICE_PORT ?? 4010)
-const INGEST_UPSTREAM_DEFAULT = `http://${INGEST_UPSTREAM_HOST}:${INGEST_UPSTREAM_PORT}`
-const INGEST_UPSTREAM = process.env.INGESTION_SERVICE_URL ?? INGEST_UPSTREAM_DEFAULT
+const INGEST_UPSTREAM = resolveUpstream({
+  url: process.env.INGESTION_SERVICE_URL,
+  host: process.env.INGESTION_SERVICE_HOST,
+  port: Number(process.env.INGESTION_SERVICE_PORT ?? 4010),
+  dns: 'ingestion-service'
+})
 
 await app.register(httpProxy as any, {
   upstream: INGEST_UPSTREAM,
@@ -78,10 +93,12 @@ await app.register(httpProxy as any, {
 })
 
 // Proxy to ai-service
-const AI_UPSTREAM_HOST = process.env.AI_SERVICE_HOST ?? 'ai-service'
-const AI_UPSTREAM_PORT = Number(process.env.AI_SERVICE_PORT ?? 4020)
-const AI_UPSTREAM_DEFAULT = `http://${AI_UPSTREAM_HOST}:${AI_UPSTREAM_PORT}`
-const AI_UPSTREAM = process.env.AI_SERVICE_URL ?? AI_UPSTREAM_DEFAULT
+const AI_UPSTREAM = resolveUpstream({
+  url: process.env.AI_SERVICE_URL,
+  host: process.env.AI_SERVICE_HOST,
+  port: Number(process.env.AI_SERVICE_PORT ?? 4020),
+  dns: 'ai-service'
+})
 
 await app.register(httpProxy as any, {
   upstream: AI_UPSTREAM,
@@ -98,10 +115,12 @@ await app.register(httpProxy as any, {
 })
 
 // Proxy to media-service
-const MEDIA_UPSTREAM_HOST = process.env.MEDIA_SERVICE_HOST ?? 'media-service'
-const MEDIA_UPSTREAM_PORT = Number(process.env.MEDIA_SERVICE_PORT ?? 4030)
-const MEDIA_UPSTREAM_DEFAULT = `http://${MEDIA_UPSTREAM_HOST}:${MEDIA_UPSTREAM_PORT}`
-const MEDIA_UPSTREAM = process.env.MEDIA_SERVICE_URL ?? MEDIA_UPSTREAM_DEFAULT
+const MEDIA_UPSTREAM = resolveUpstream({
+  url: process.env.MEDIA_SERVICE_URL,
+  host: process.env.MEDIA_SERVICE_HOST,
+  port: Number(process.env.MEDIA_SERVICE_PORT ?? 4030),
+  dns: 'media-service'
+})
 
 await app.register(httpProxy as any, {
   upstream: MEDIA_UPSTREAM,
