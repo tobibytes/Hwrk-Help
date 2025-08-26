@@ -21,8 +21,8 @@ app.get('/ai/health', async () => ({ ok: true }))
 app.post('/ai/start', async (req, reply) => {
   const id = (req.headers['x-request-id'] as string) || req.id
   const body = (req.body ?? {}) as { doc_id?: string; markdown?: string }
-  const docId = (body.doc_id || 'unknown').trim()
-  if (!docId && !body.markdown) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'doc_id or markdown required' } })
+  const docId = (body.doc_id ?? '').trim()
+  if (!docId && !(body.markdown && body.markdown.trim())) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'doc_id or markdown required' } })
 
   const AI_GENERATION = (process.env.AI_GENERATION || 'stub').toLowerCase()
   const OPENAI_CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini'
