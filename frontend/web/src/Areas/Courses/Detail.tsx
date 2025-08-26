@@ -11,6 +11,17 @@ async function fetchJSON<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function postJSON<T>(url: string, body?: any): Promise<T> {
+  const res = await fetch(url, {
+    credentials: 'include',
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body ?? {}),
+  });
+  if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+  return (await res.json()) as T;
+}
+
 interface DocRow {
   doc_id: string;
   title: string | null;
@@ -37,36 +48,59 @@ export default function CourseDetailArea() {
   const [assignments, setAssignments] = useState<AssignmentRow[] | null>(null);
   const [errorDocs, setErrorDocs] = useState<string | null>(null);
   const [errorAssign, setErrorAssign] = useState<string | null>(null);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  async function loadDocs(cancelledFlag?: { v: boolean }) {
+    setErrorDocs(null);
+    try {
+      const data = await fetchJSON<{ ok: true; documents: DocRow[] }>(
+        `${API_BASE}/api/canvas/documents?course_id=${encodeURIComponent(courseId || '')}&limit=200`
+      );
+      if (!cancelledFlag?.v) setDocs(data.documents);
+    } catch (e: any) {
+      if (!cancelledFlag?.v) setErrorDocs(String(e?.message || e));
+    }
+  }
+
+  async function loadAssignments(cancelledFlag?: { v: boolean }) {
+    setErrorAssign(null);
+    try {
+      const data = await fetchJSON<{ ok: true; assignments: AssignmentRow[] }>(
+        `${API_BASE}/api/canvas/assignments?course_id=${encodeURIComponent(courseId || '')}`
+      );
+      if (!cancelledFlag?.v) setAssignments(data.assignments);
+    } catch (e: any) {
+      if (!cancelledFlag?.v) setErrorAssign(String(e?.message || e));
+    }
+  }
+
+  async function syncNow() {
+    setSyncBusy(true);
+    setSyncMsg(null);
+    try {
+      const res = await postJSON<{ ok: true; results: Array<{ course_id: string; processed: number; skipped: number }> }>(
+        `${API_BASE}/api/canvas/sync`,
+        {}
+      );
+      const totalProcessed = res.results.reduce((a, r) => a + (r.processed || 0), 0);
+      const totalSkipped = res.results.reduce((a, r) => a + (r.skipped || 0), 0);
+      setSyncMsg(`Sync done: processed ${totalProcessed}, skipped ${totalSkipped} across ${res.results.length} courses.`);
+      await Promise.all([loadDocs(), loadAssignments()]);
+    } catch (e: any) {
+      setSyncMsg(`Sync failed: ${String(e?.message || e)}`);
+    } finally {
+      setSyncBusy(false);
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false;
-    async function loadDocs() {
-      setErrorDocs(null);
-      try {
-        const data = await fetchJSON<{ ok: true; documents: DocRow[] }>(
-          `${API_BASE}/api/canvas/documents?course_id=${encodeURIComponent(courseId || '')}&limit=200`
-        );
-        if (!cancelled) setDocs(data.documents);
-      } catch (e: any) {
-        if (!cancelled) setErrorDocs(String(e?.message || e));
-      }
-    }
-    async function loadAssignments() {
-      setErrorAssign(null);
-      try {
-        const data = await fetchJSON<{ ok: true; assignments: AssignmentRow[] }>(
-          `${API_BASE}/api/canvas/assignments?course_id=${encodeURIComponent(courseId || '')}`
-        );
-        if (!cancelled) setAssignments(data.assignments);
-      } catch (e: any) {
-        if (!cancelled) setErrorAssign(String(e?.message || e));
-      }
-    }
+    let cancelled = { v: false };
     if (courseId) {
-      void loadDocs();
-      void loadAssignments();
+      void loadDocs(cancelled);
+      void loadAssignments(cancelled);
     }
-    return () => { cancelled = true };
+    return () => { cancelled.v = true };
   }, [courseId]);
 
   return (
@@ -76,6 +110,12 @@ export default function CourseDetailArea() {
 
         <TalvraStack>
           <TalvraText as="h2">Documents</TalvraText>
+          <TalvraStack>
+            <TalvraButton disabled={syncBusy} onClick={syncNow}>
+              {syncBusy ? 'Syncing…' : 'Sync now'}
+            </TalvraButton>
+            {syncMsg && <TalvraText>{syncMsg}</TalvraText>}
+          </TalvraStack>
           {errorDocs && <TalvraText>Error loading documents: {errorDocs}</TalvraText>}
           <TalvraCard>
             <TalvraStack>
