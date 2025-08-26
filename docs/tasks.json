@@ -859,9 +859,9 @@
             "body": "Why: capture more learning materials. How: new sync surfaces with flags; HTML to text; ingestion+auto-embed."
           },
           "completed": false
-        }
-        ,
+        },
         {
+          "id": "T086",
           "id": "T084",
           "title": "Async Canvas sync V1: kickoff, worker, and status endpoints",
           "branch": "backend/canvas-sync-async",
@@ -931,7 +931,7 @@
             "title": "feat(web): Settings page uses async Canvas sync with polling",
             "body": "Switch Settings to kickoff endpoint, add progress banner and persistence matching Course Detail."
           },
-          "completed": false
+          "completed": true
         }
       ]
     },
