@@ -861,7 +861,6 @@
           "completed": false
         },
         {
-          "id": "T086",
           "id": "T084",
           "title": "Async Canvas sync V1: kickoff, worker, and status endpoints",
           "branch": "backend/canvas-sync-async",

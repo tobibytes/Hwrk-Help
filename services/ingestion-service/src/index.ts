@@ -3,6 +3,9 @@ import Redis from 'ioredis'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import mammoth from 'mammoth'
+import TurndownService from 'turndown'
+import { XMLParser } from 'fast-xml-parser'
+import unzipper from 'unzipper'
 import { LocalFsProvider } from './storage/local.js'
 import { AzureBlobProvider } from './storage/azure.js'
 import type { StorageProvider } from './storage/provider.js'
@@ -62,13 +65,76 @@ async function extractFromBuffer(buf: Buffer, ext: string): Promise<{ markdown: 
     const text = res.text || ''
     return { markdown: text, structure: { type: 'pdf', length: text.length, pages: res.numpages } }
   }
+  if (lower === '.txt' || lower === '.md' || lower === '.markdown') {
+    const text = buf.toString('utf8')
+    return { markdown: text, structure: { type: lower === '.txt' ? 'txt' : 'md', length: text.length } }
+  }
+  if (lower === '.html' || lower === '.htm') {
+    const html = buf.toString('utf8')
+    const td = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' })
+    const md = td.turndown(html)
+    return { markdown: md, structure: { type: 'html', length: md.length } }
+  }
+  if (lower === '.pptx') {
+    const slides = await extractPptxToMarkdown(buf)
+    const md = slides.join('\n\n')
+    return { markdown: md, structure: { type: 'pptx', slides: slides.length, length: md.length } }
+  }
   throw new Error(`Unsupported file type: ${ext}`)
+}
+
+async function extractPptxToMarkdown(buf: Buffer): Promise<string[]> {
+  // Open PPTX zip archive and extract text from slide XMLs
+  const dir: any = await unzipper.Open.buffer(buf)
+  const slideEntries: any[] = (dir.files as any[]).filter((f: any) => f.path.startsWith('ppt/slides/slide') && f.path.endsWith('.xml'))
+  slideEntries.sort((a: any, b: any) => a.path.localeCompare(b.path, undefined, { numeric: true }))
+  const parser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
+  const slides: string[] = []
+  for (let i = 0; i < slideEntries.length; i++) {
+    const entry = slideEntries[i]
+    const content = await entry.buffer()
+    const xml = content.toString('utf8')
+    const json = parser.parse(xml)
+    // Text in DrawingML is usually under p:sld > p:cSld > p:spTree with runs a:r/a:t
+    const texts: string[] = []
+    function collect(node: any) {
+      if (!node || typeof node !== 'object') return
+      // a:t nodes contain text
+      if (Object.prototype.hasOwnProperty.call(node, 't')) {
+        const v = node.t
+        if (typeof v === 'string' && v.trim()) texts.push(v.trim())
+      }
+      for (const k of Object.keys(node)) {
+        const child = (node as any)[k]
+        if (Array.isArray(child)) child.forEach(collect)
+        else if (typeof child === 'object') collect(child)
+      }
+    }
+    collect(json)
+    const slideText = texts.join(' ')
+    const md = `## Slide ${i + 1}\n\n${slideText}`
+    slides.push(md)
+  }
+  if (slides.length === 0) return ['## Slide 1\n\n(No extractable text)']
+  return slides
 }
 
 async function extractToMarkdown(filePath: string): Promise<{ markdown: string; structure: any }> {
   const ext = path.extname(filePath).toLowerCase()
   const buf = await fs.readFile(filePath)
   return extractFromBuffer(buf, ext)
+}
+
+function guessExtFromDataUrl(url: string): string {
+  // Basic mapping for common types: html and pptx
+  // data:[<mediatype>][;base64],<data>
+  const m = /^data:([^;,]+)/.exec(url)
+  const mt = (m?.[1] || '').toLowerCase()
+  if (mt.includes('html')) return '.html'
+  if (mt.includes('markdown')) return '.md'
+  if (mt.includes('plain')) return '.txt'
+  if (mt.includes('presentationml.presentation')) return '.pptx'
+  return ''
 }
 
 app.post('/ingestion/start', async (req, reply) => {
@@ -95,7 +161,7 @@ app.post('/ingestion/start', async (req, reply) => {
     } else if (body.url) {
       const url = body.url
       const filename = body.filename || new URL(url).pathname.split('/').pop() || 'document'
-      const ext = path.extname(filename)
+      const ext = path.extname(filename) || (url.startsWith('data:') ? guessExtFromDataUrl(url) : '')
       if (!ext) {
         return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'filename with extension required when using url' } })
       }
