@@ -85,9 +85,9 @@ async function extractFromBuffer(buf: Buffer, ext: string): Promise<{ markdown: 
 
 async function extractPptxToMarkdown(buf: Buffer): Promise<string[]> {
   // Open PPTX zip archive and extract text from slide XMLs
-  const dir = await unzipper.Open.buffer(buf)
-  const slideEntries = dir.files.filter((f) => f.path.startsWith('ppt/slides/slide') && f.path.endsWith('.xml'))
-  slideEntries.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))
+  const dir: any = await unzipper.Open.buffer(buf)
+  const slideEntries: any[] = (dir.files as any[]).filter((f: any) => f.path.startsWith('ppt/slides/slide') && f.path.endsWith('.xml'))
+  slideEntries.sort((a: any, b: any) => a.path.localeCompare(b.path, undefined, { numeric: true }))
   const parser = new XMLParser({ ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
   const slides: string[] = []
   for (let i = 0; i < slideEntries.length; i++) {
