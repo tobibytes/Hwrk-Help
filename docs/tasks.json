@@ -392,6 +392,29 @@
             "body": "What: storage abstraction and Azure adapter. How: env selects provider. Tests: Azurite run and fetch URLs."
           },
           "completed": true
+        },
+        {
+          "id": "T044",
+          "title": "Ingestion: support TXT/MD, HTML-to-text, and PPTX extraction",
+          "branch": "backend/ingestion-more-types",
+          "paths": ["services/ingestion-service/**", "infra/.env.example"],
+          "steps": [
+            "Add .txt and .md extractors (plain text passthrough to markdown)",
+            "Add .html extraction (HTML to text; strip tags, preserve headings/links where possible)",
+            "Add .pptx extraction (extract slide text)",
+            "Surface unsupported file errors clearly and skip cleanly in Canvas sync",
+            "Update docs and .env example as needed"
+          ],
+          "run": ["pnpm --filter ./services/ingestion-service build", "curl -X POST /api/ingestion/start with sample files"],
+          "acceptance": [
+            "Uploading .txt, .md, .html, and .pptx yields content.md and structure.json",
+            "Unsupported types are skipped with a clear message"
+          ],
+          "pr": {
+            "title": "feat(ingestion): T044 add TXT/MD, HTML-to-text, and PPTX extractors",
+            "body": "Why: broaden supported file types from Canvas. How: new extractors; graceful skips; docs updated."
+          },
+          "completed": false
         }
       ]
     },
@@ -785,6 +808,80 @@
           "pr": {
             "title": "feat(canvas+ai): auto-embed after Canvas sync",
             "body": "Wire canvas sync -> ingestion -> embeddings; idempotent and observable."
+          },
+          "completed": false
+        },
+        {
+          "id": "T083",
+          "title": "Canvas coverage: Course Files, assignment attachments, and Pages (HTML) ingestion",
+          "branch": "backend/canvas-files-pages",
+          "paths": ["services/canvas-service/**", "services/ingestion-service/**"],
+          "steps": [
+            "List and ingest Course Files via /api/v1/courses/:course_id/files (paginate)",
+            "Attach Assignment attachments and ingest supported types",
+            "Fetch Canvas Pages HTML via /api/v1/courses/:course_id/pages and convert to text",
+            "Feature flags: CANVAS_SYNC_INCLUDE_FILES and CANVAS_SYNC_INCLUDE_PAGES",
+            "Deduplicate by content hash, set doc_id stable scheme, trigger ingestion and embeddings"
+          ],
+          "run": ["POST /api/canvas/sync with flags enabled; observe documents increase"],
+          "acceptance": [
+            "Files and Pages appear as documents with correct course/module/assignment context where applicable",
+            "Unsupported types are skipped cleanly; supported types are extracted and searchable"
+          ],
+          "pr": {
+            "title": "feat(canvas): T083 expand coverage to Course Files, attachments, and Pages",
+            "body": "Why: capture more learning materials. How: new sync surfaces with flags; HTML to text; ingestion+auto-embed."
+          },
+          "completed": false
+        }
+        ,
+        {
+          "id": "T084",
+          "title": "Async Canvas sync V1: kickoff, worker, and status endpoints",
+          "branch": "backend/canvas-sync-async",
+          "paths": ["services/canvas-service/**", "services/api-gateway/**", "infra/.env.example"],
+          "steps": [
+            "Add POST /canvas/sync/start and POST /canvas/sync/course/:course_id/start that enqueue jobs and return 202 { job_id }",
+            "Create Redis Streams consumer group worker in canvas-service to run existing sync logic in background",
+            "Maintain job status in Redis hash canvas:sync:job:{job_id} (status, processed, skipped, errors, timestamps)",
+            "Expose GET /canvas/sync/status/:job_id (polling) and coalesce duplicate jobs per user/course",
+            "Plumb X-Request-Id and avoid storing tokens in payload; lookup token at run time"
+          ],
+          "run": [
+            "curl -X POST /api/canvas/sync/course/123/start",
+            "curl /api/canvas/sync/status/{job_id} until status=completed"
+          ],
+          "acceptance": [
+            "Kickoff returns in <100ms with job_id",
+            "Status transitions running -> completed or failed with counts",
+            "No long-running HTTP sync endpoints remain"
+          ],
+          "pr": {
+            "title": "feat(canvas): async sync kickoff + worker + status (no timeouts)",
+            "body": "Why: avoid timeouts and let users continue working. How: enqueue to Redis Streams, background worker, status endpoint, idempotent coalescing, request-id propagation."
+          },
+          "completed": false
+        },
+        {
+          "id": "T085",
+          "title": "Frontend: async Canvas sync UI with progress",
+          "branch": "web/async-sync-ui",
+          "paths": ["frontend/web/src/Areas/Courses/**"],
+          "steps": [
+            "Update Course Detail Sync button to call /api/canvas/sync/course/:course_id/start (kickoff)",
+            "Poll GET /api/canvas/sync/status/:job_id every 1–2s and render progress banner",
+            "Disable Sync while job is running; on completion, refresh documents and assignments and show toast",
+            "Optional: show a lightweight background jobs indicator so users can navigate away"
+          ],
+          "run": ["Open a course, click Sync, observe progress and completion without waiting on a long request"],
+          "acceptance": [
+            "UI returns immediately after kickoff and shows progress",
+            "On completion, data refreshes and a toast appears",
+            "Sync button is disabled during an active job for that course"
+          ],
+          "pr": {
+            "title": "feat(web): async Canvas sync UI with progress",
+            "body": "What: kickoff + polling progress banner on Course Detail; disables sync while running; refresh on completion."
           },
           "completed": false
         }
