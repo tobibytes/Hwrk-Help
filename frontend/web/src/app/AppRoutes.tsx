@@ -37,6 +37,14 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: buildPath(FRONT_ROUTES.COURSE_DETAIL, { courseId: ':courseId' }),
+    element: (
+      <Suspense fallback={<div>Loading...</div>}>
+        <CourseDetailArea />
+      </Suspense>
+    ),
+  },
+  {
     path: buildPath(FRONT_ROUTES.SETTINGS),
     element: (
       <Suspense fallback={<div>Loading...</div>}>

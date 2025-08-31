@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
+import { getCourseDisplayName, setCourseDisplayName } from '@/utils/courseNames';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
 
@@ -160,10 +161,23 @@ useEffect(() => {
   return () => { stopped = true; clearInterval(interval); };
 }, [jobId, courseId]);
 
+  function rename() {
+    if (!courseId) return;
+    const current = getCourseDisplayName(courseId, courseId);
+    const next = window.prompt('Set display name for this course', current)?.trim();
+    if (next === undefined) return;
+    setCourseDisplayName(courseId, next);
+  }
+
+  const header = courseId ? getCourseDisplayName(courseId, courseId) : 'Course';
+
   return (
     <TalvraSurface>
       <TalvraStack>
-        <TalvraText as="h1">Course {courseId}</TalvraText>
+        <TalvraStack>
+          <TalvraText as="h1">{header}</TalvraText>
+          <TalvraButton onClick={rename}>Rename</TalvraButton>
+        </TalvraStack>
 
 <TalvraStack>
           <TalvraText as="h2">Documents</TalvraText>

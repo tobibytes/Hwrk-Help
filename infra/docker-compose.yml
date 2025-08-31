@@ -67,19 +67,6 @@ services:
     ports:
       - "3001:3001"
 
-  web:
-    build:
-      context: ..
-      dockerfile: frontend/web/Dockerfile
-    container_name: talvra_web
-    env_file:
-      - .env
-    depends_on:
-      api-gateway:
-        condition: service_started
-    ports:
-      - "80:80"
-
   ingestion-service:
     build:
       context: ..
