@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { FRONT_ROUTES, buildPath } from './routes';
 import AdminArea from '@/Areas/Admin';
 import CoursesArea from '@/Areas/Courses';
+import CourseDetailArea from '@/Areas/Courses/Detail';
 import SettingsArea from '@/Areas/Settings';
 import DocumentsArea from '@/Areas/Documents';
 import DocumentDetailArea from '@/Areas/Documents/Detail';
