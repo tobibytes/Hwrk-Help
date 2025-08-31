@@ -2,6 +2,7 @@ import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, TalvraButton } from '@ui';
 import { useAPI, qk } from '@api';
 import { loadCourseNames, saveCourseNames, type CourseNameMap } from '@/utils/courseNames';
+import { useState } from 'react';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
 
@@ -26,19 +27,7 @@ export default function CoursesArea() {
   const courses = coursesQ.data?.courses ?? [];
 
   // Local display name overrides (persisted)
-  const [names, setNames] = ((): [CourseNameMap, (m: CourseNameMap) => void] => {
-    // lazy init from localStorage
-    const initial = loadCourseNames();
-    let state = initial;
-    const set = (m: CourseNameMap) => {
-      state = m;
-      try { saveCourseNames(m) } catch {}
-      // force rerender by replacing state via a noop setState trick
-    };
-    // use a simple hack: keep in a ref-like closure and re-render on rename via a dummy state
-    // but better: convert to useState
-    return [state, set];
-  })() as unknown as [CourseNameMap, (m: CourseNameMap) => void];
+  const [names, setNames] = useState<CourseNameMap>(() => loadCourseNames());
 
   function displayName(c: Course) {
     return (names && names[c.id]) || c.name;
@@ -51,8 +40,7 @@ export default function CoursesArea() {
     const copy = { ...(names || {}) };
     if (next) copy[c.id] = next; else delete copy[c.id];
     try { saveCourseNames(copy) } catch {}
-    // Trigger a refresh by refetching courses; in dev this is fine
-    coursesQ.refetch();
+    setNames(copy);
   }
 
   return (
