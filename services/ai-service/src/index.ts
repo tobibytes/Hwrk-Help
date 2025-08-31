@@ -175,9 +175,33 @@ app.post('/ai/embed', async (req, reply) => {
     if (exists && !force) {
       return { ok: true, doc_id: docId, skipped: 'exists' }
     }
-    const mdRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/blob/${encodeURIComponent(docId)}/markdown`)
-    if (!mdRes.ok) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'markdown not found' } })
-    const text = await mdRes.text()
+
+    // Try to read markdown, waiting briefly if ingestion hasn't finished yet
+    const mdUrl = `${INGESTION_BASE.replace(/\/$/, '')}/ingestion/blob/${encodeURIComponent(docId)}/markdown`
+    let text: string | null = null
+    const maxAttempts = 8
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const mdRes = await fetch(mdUrl)
+        if (mdRes.ok) {
+          text = await mdRes.text()
+          break
+        }
+        if (mdRes.status === 404) {
+          // Not ready yet; backoff and retry
+          await new Promise((r) => setTimeout(r, 300 * attempt))
+          continue
+        }
+        // Other error codes: give up with an error
+        const errText = await mdRes.text().catch(() => `HTTP ${mdRes.status}`)
+        return reply.code(mdRes.status).send({ error: { code: 'UPSTREAM_ERROR', message: errText } })
+      } catch (e) {
+        // Network error; brief backoff and retry
+        await new Promise((r) => setTimeout(r, 300 * attempt))
+      }
+    }
+    if (!text) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'markdown not ready' } })
+
     const chunks = chunkText(text)
     const vecs = await embedTexts(chunks)
     const payload = { doc_id: docId, model: OPENAI_EMBED_MODEL, chunks: chunks.map((t, i) => ({ id: `${docId}-${i}`, text: t, vector: vecs[i] })) }
@@ -232,6 +256,41 @@ app.get('/ai/search', async (req, reply) => {
     const scored = payload.chunks.map((c) => ({ id: c.id, text: c.text, score: cosine(qVec, c.vector) }))
     scored.sort((a, b) => b.score - a.score)
     const top = scored.slice(0, k).map((s) => ({ id: s.id, doc_id: docId, score: s.score, snippet: s.text.slice(0, 300) + (s.text.length > 300 ? ' …' : '') }))
+    return { ok: true, q, results: top }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+app.get('/ai/search-all', async (req, reply) => {
+  const q = ((req.query as any)?.q ?? '').toString().trim()
+  const kRaw = Number((req.query as any)?.k ?? 5)
+  const k = Number.isFinite(kRaw) ? Math.max(1, Math.min(kRaw, 50)) : 5
+  if (!q) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'q required' } })
+  try {
+    const files = await fs.readdir(OUTPUT_DIR).catch(() => [])
+    const embFiles = files.filter((f) => f.endsWith('.embeddings.json'))
+    if (embFiles.length === 0) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'no embeddings available' } })
+    const qVec = (await embedTexts([q]))[0]
+
+    type Row = { id: string; doc_id: string; text: string; score: number }
+    const rows: Row[] = []
+
+    for (const f of embFiles) {
+      try {
+        const full = path.join(OUTPUT_DIR, f)
+        const json = JSON.parse(await fs.readFile(full, 'utf8')) as { doc_id?: string; chunks: Array<{ id: string; text: string; vector: number[] }> }
+        const docId = json.doc_id || f.replace(/\.embeddings\.json$/, '')
+        for (const c of json.chunks) {
+          const score = cosine(qVec, c.vector)
+          rows.push({ id: c.id, doc_id: docId, text: c.text, score })
+        }
+      } catch {}
+    }
+
+    if (rows.length === 0) return { ok: true, q, results: [] }
+    rows.sort((a, b) => b.score - a.score)
+    const top = rows.slice(0, k).map((r) => ({ id: r.id, doc_id: r.doc_id, score: r.score, snippet: r.text.slice(0, 300) + (r.text.length > 300 ? ' …' : '') }))
     return { ok: true, q, results: top }
   } catch (e: any) {
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
