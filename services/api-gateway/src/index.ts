@@ -136,6 +136,28 @@ await app.register(httpProxy as any, {
   }
 })
 
+// Proxy to notification-service
+const NOTIFY_UPSTREAM = resolveUpstream({
+  url: process.env.NOTIFY_SERVICE_URL,
+  host: process.env.NOTIFY_SERVICE_HOST,
+  port: Number(process.env.NOTIFY_SERVICE_PORT ?? 4040),
+  dns: 'notification-service'
+})
+
+await app.register(httpProxy as any, {
+  upstream: NOTIFY_UPSTREAM,
+  prefix: '/api/notify',
+  rewritePrefix: '/notify',
+  rewriteHeaders: (headers: Record<string, string>, req: any) => {
+    const origin = req.headers?.origin
+    if (origin && origin === FRONTEND_ORIGIN) {
+      headers['access-control-allow-origin'] = origin
+      headers['access-control-allow-credentials'] = 'true'
+    }
+    return headers
+  }
+})
+
 const port = Number(process.env.API_GATEWAY_PORT ?? 3001)
 const host = String(process.env.API_GATEWAY_HOST ?? '0.0.0.0')
 app

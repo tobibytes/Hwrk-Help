@@ -102,6 +102,72 @@ export default function SettingsArea() {
     return () => { stopped = true; clearInterval(interval); };
   }, [jobId]);
 
+  async function sendTestReminder() {
+    setTestMsg(null);
+    try {
+      await postJSON(`${API_BASE}/api/notify/test`, { to: testEmail || undefined });
+      setTestMsg('Test reminder sent (or logged if SMTP not configured).');
+    } catch (e: any) {
+      setTestMsg(`Test reminder failed: ${String(e?.message || e)}`);
+    }
+  }
+
+  const [testEmail, setTestEmail] = useState('');
+  const [testMsg, setTestMsg] = useState<string | null>(null);
+
+  // Template send UI state
+  const [templates, setTemplates] = useState<Array<{ name: string; description: string; fields: string[] }>>([]);
+  const [templateBusy, setTemplateBusy] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [templateTo, setTemplateTo] = useState('');
+  const [templateSubject, setTemplateSubject] = useState('');
+  const [varsJson, setVarsJson] = useState<string>(
+    JSON.stringify(
+      {
+        user_name: "Alex",
+        course_name: "BIO 101",
+        assignment_name: "Photosynthesis Worksheet",
+        due_at: "2025-09-03 10:00",
+        assignment_url: "https://canvas.example.com/courses/123/assignments/456",
+      },
+      null,
+      2
+    )
+  );
+  const [templateMsg, setTemplateMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/notify/templates`, { credentials: 'include' });
+        if (!res.ok) return;
+        const j = await res.json();
+        if (!cancelled) setTemplates(j.templates || []);
+      } catch {}
+    })();
+    return () => { cancelled = true };
+  }, []);
+
+  async function sendTemplated() {
+    setTemplateBusy(true);
+    setTemplateMsg(null);
+    try {
+      if (!selectedTemplate) throw new Error('Select a template');
+      let vars: any = {};
+      try { vars = JSON.parse(varsJson || '{}'); } catch (e) { throw new Error('Vars JSON is invalid'); }
+      const body: any = { template: selectedTemplate, vars };
+      if (templateTo && templateTo.trim()) body.to = templateTo.trim();
+      if (templateSubject && templateSubject.trim()) body.subject = templateSubject.trim();
+      await postJSON(`${API_BASE}/api/notify/send-template`, body);
+      setTemplateMsg('Templated email sent (or logged if SMTP not configured).');
+    } catch (e: any) {
+      setTemplateMsg(`Send failed: ${String(e?.message || e)}`);
+    } finally {
+      setTemplateBusy(false);
+    }
+  }
+
   return (
     <TalvraSurface>
       <TalvraStack>
@@ -110,6 +176,83 @@ export default function SettingsArea() {
         <TalvraCard>
           <TalvraStack>
             <CanvasTokenSettings />
+          </TalvraStack>
+        </TalvraCard>
+
+        <TalvraCard>
+          <TalvraStack>
+            <TalvraText as="h3">Reminders</TalvraText>
+            <TalvraStack>
+              <label>
+                <TalvraText as="span">Test email (optional)</TalvraText>
+                <input
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="you@example.com (leave blank to use server default)"
+                  style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                />
+              </label>
+              <TalvraButton onClick={sendTestReminder}>Send test reminder</TalvraButton>
+              {testMsg && <TalvraText>{testMsg}</TalvraText>}
+            </TalvraStack>
+          </TalvraStack>
+        </TalvraCard>
+
+        <TalvraCard>
+          <TalvraStack>
+            <TalvraText as="h3">Send templated reminder</TalvraText>
+            <TalvraStack>
+              <label>
+                <TalvraText as="span">Template</TalvraText>
+                <select
+                  value={selectedTemplate}
+                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                >
+                  <option value="">Select a template</option>
+                  {templates.map((t) => (
+                    <option key={t.name} value={t.name}>{t.name}</option>
+                  ))}
+                </select>
+              </label>
+              {selectedTemplate && (
+                <TalvraText style={{ color: '#6b7280' }}>
+                  {templates.find((t) => t.name === selectedTemplate)?.description}
+                  {' '}Fields: {(templates.find((t) => t.name === selectedTemplate)?.fields || []).join(', ')}
+                </TalvraText>
+              )}
+              <label>
+                <TalvraText as="span">To (optional)</TalvraText>
+                <input
+                  value={templateTo}
+                  onChange={(e) => setTemplateTo(e.target.value)}
+                  placeholder="student@example.com (uses server default if blank)"
+                  style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                />
+              </label>
+              <label>
+                <TalvraText as="span">Subject (optional override)</TalvraText>
+                <input
+                  value={templateSubject}
+                  onChange={(e) => setTemplateSubject(e.target.value)}
+                  placeholder="Leave blank to use template default"
+                  style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                />
+              </label>
+              <label>
+                <TalvraText as="span">Vars (JSON)</TalvraText>
+                <textarea
+                  value={varsJson}
+                  onChange={(e) => setVarsJson(e.target.value)}
+                  rows={8}
+                  style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%', fontFamily: 'monospace' }}
+                />
+              </label>
+              <TalvraButton disabled={templateBusy || !selectedTemplate} onClick={sendTemplated}>
+                {templateBusy ? 'Sending…' : 'Send templated email'}
+              </TalvraButton>
+              {templateMsg && <TalvraText>{templateMsg}</TalvraText>}
+            </TalvraStack>
           </TalvraStack>
         </TalvraCard>
 
