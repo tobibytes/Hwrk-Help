@@ -101,6 +101,9 @@ export default function DocumentsArea() {
             <TalvraLink href={buildPath(FRONT_ROUTES.SETTINGS)}>
               {FRONT_ROUTES.SETTINGS.name}
             </TalvraLink>
+            <TalvraLink href={buildPath(FRONT_ROUTES.SEARCH)}>
+              {FRONT_ROUTES.SEARCH.name}
+            </TalvraLink>
           </TalvraStack>
         </TalvraStack>
       </TalvraStack>

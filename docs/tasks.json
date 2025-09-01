@@ -772,7 +772,7 @@
             "title": "feat(web): Document Detail embeds + semantic search UI",
             "body": "What: embed and search controls on Document Detail; How: calls ai-service endpoints via gateway."
           },
-          "completed": false
+          "completed": true
         }
       ]
     },
@@ -813,7 +813,7 @@
             "title": "feat(canvas) deep sync + ingestion bridge",
             "body": "What: deeper Canvas sync and event bridge with dedupe."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T082",
@@ -835,7 +835,7 @@
             "title": "feat(canvas+ai): auto-embed after Canvas sync",
             "body": "Wire canvas sync -> ingestion -> embeddings; idempotent and observable."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T083",
