@@ -746,7 +746,7 @@
             "title": "feat(web) search UI scoped to course/assignment",
             "body": "What: search page + filters + results display."
           },
-          "completed": false
+          "completed": true
         }
       ]
     },
