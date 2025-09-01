@@ -1,4 +1,4 @@
-import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, TalvraButton, Tabs, TabList, Tab, TabPanels, TabPanel, Chip, Toaster } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, TalvraButton, Tabs, TabList, Tab, TabPanels, TabPanel, Chip, Toaster, Label, Input, Select, Textarea, SectionHeader } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { CanvasTokenSettings } from '@/components/CanvasTokenSettings';
 import { useEffect, useState } from 'react';
@@ -172,7 +172,7 @@ export default function SettingsArea() {
     <TalvraSurface>
       <Toaster>
         <TalvraStack>
-          <TalvraText as="h1">Settings</TalvraText>
+<SectionHeader title="Settings" subtitle="Manage Canvas connection, email reminders, templates, and sync." />
 
           <Tabs defaultValue="canvas">
             <TalvraCard>
@@ -191,15 +191,15 @@ export default function SettingsArea() {
 
                 <TabPanel value="reminders">
                   <TalvraStack>
-                    <label>
-                      <TalvraText as="span">Test email (optional)</TalvraText>
-                      <input
+<Label>
+                      <span className="label-text">Test email (optional)</span>
+                      <Input
                         value={testEmail}
                         onChange={(e) => setTestEmail(e.target.value)}
                         placeholder="you@example.com (leave blank to use server default)"
-                        style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                        fullWidth
                       />
-                    </label>
+                    </Label>
                     <TalvraButton onClick={sendTestReminder}>Send test reminder</TalvraButton>
                     {testMsg && <TalvraText>{testMsg}</TalvraText>}
                   </TalvraStack>
@@ -207,52 +207,52 @@ export default function SettingsArea() {
 
                 <TabPanel value="templates">
                   <TalvraStack>
-                    <label>
-                      <TalvraText as="span">Template</TalvraText>
-                      <select
+<Label>
+                      <span className="label-text">Template</span>
+                      <Select
                         value={selectedTemplate}
                         onChange={(e) => setSelectedTemplate(e.target.value)}
-                        style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                        fullWidth
                       >
                         <option value="">Select a template</option>
                         {templates.map((t) => (
                           <option key={t.name} value={t.name}>{t.name}</option>
                         ))}
-                      </select>
-                    </label>
+                      </Select>
+                    </Label>
                     {selectedTemplate && (
                       <TalvraText style={{ color: '#6b7280' }}>
                         {templates.find((t) => t.name === selectedTemplate)?.description}
                         {' '}Fields: {(templates.find((t) => t.name === selectedTemplate)?.fields || []).join(', ')}
                       </TalvraText>
                     )}
-                    <label>
-                      <TalvraText as="span">To (optional)</TalvraText>
-                      <input
+<Label>
+                      <span className="label-text">To (optional)</span>
+                      <Input
                         value={templateTo}
                         onChange={(e) => setTemplateTo(e.target.value)}
                         placeholder="student@example.com (uses server default if blank)"
-                        style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                        fullWidth
                       />
-                    </label>
-                    <label>
-                      <TalvraText as="span">Subject (optional override)</TalvraText>
-                      <input
+                    </Label>
+<Label>
+                      <span className="label-text">Subject (optional override)</span>
+                      <Input
                         value={templateSubject}
                         onChange={(e) => setTemplateSubject(e.target.value)}
                         placeholder="Leave blank to use template default"
-                        style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                        fullWidth
                       />
-                    </label>
-                    <label>
-                      <TalvraText as="span">Vars (JSON)</TalvraText>
-                      <textarea
+                    </Label>
+<Label>
+                      <span className="label-text">Vars (JSON)</span>
+                      <Textarea
                         value={varsJson}
                         onChange={(e) => setVarsJson(e.target.value)}
                         rows={8}
-                        style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%', fontFamily: 'monospace' }}
+                        fullWidth
                       />
-                    </label>
+                    </Label>
                     <TalvraButton disabled={templateBusy || !selectedTemplate} onClick={sendTemplated}>
                       {templateBusy ? 'Sending…' : 'Send templated email'}
                     </TalvraButton>

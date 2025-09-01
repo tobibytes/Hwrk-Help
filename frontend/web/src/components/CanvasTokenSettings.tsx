@@ -1,4 +1,4 @@
-import { TalvraStack, TalvraText, TalvraButton, Input, useToast } from '@ui';
+import { TalvraStack, TalvraText, TalvraButton, Input, useToast, Label } from '@ui';
 import { useAPI } from '@api';
 import { useState } from 'react';
 
@@ -94,7 +94,7 @@ export function CanvasTokenSettings() {
 
   return (
     <TalvraStack>
-      <TalvraText as="h4" style={{ marginTop: 16 }}>Canvas connection</TalvraText>
+<TalvraText as="h4">Canvas connection</TalvraText>
       {!isAuthed ? (
         <TalvraStack>
           <TalvraText>You are not logged in.</TalvraText>
@@ -105,20 +105,26 @@ export function CanvasTokenSettings() {
           <TalvraText>
             Provide your Canvas personal access token. Your institution base URL is fixed. We encrypt your token and never display it again.
           </TalvraText>
-          <Input
-            type="url"
-            placeholder="Canvas base URL (optional, e.g., https://morganstate.instructure.com)"
-            value={canvasBaseUrl}
-            onChange={(e) => setCanvasBaseUrl(e.target.value)}
-            fullWidth
-          />
-          <Input
-            type="password"
-            placeholder="Enter Canvas access token"
-            value={canvasToken}
-            onChange={(e) => setCanvasToken(e.target.value)}
-            fullWidth
-          />
+<Label>
+<span className="label-text">Canvas base URL (optional)</span>
+            <Input
+type="url"
+placeholder="e.g., https://morganstate.instructure.com"
+              value={canvasBaseUrl}
+              onChange={(e) => setCanvasBaseUrl(e.target.value)}
+              fullWidth
+            />
+          </Label>
+<Label>
+<span className="label-text">Canvas access token</span>
+            <Input
+type="password"
+placeholder="Enter Canvas access token"
+              value={canvasToken}
+              onChange={(e) => setCanvasToken(e.target.value)}
+              fullWidth
+            />
+          </Label>
           <TalvraStack>
             <TalvraButton disabled={busy || canvasToken.trim() === ''} onClick={saveCanvasToken}>
               Save token
