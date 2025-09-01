@@ -156,12 +156,15 @@ app.get('/canvas/documents', async (req, reply) => {
     const limitRaw = Number(q.limit ?? 50)
     const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(limitRaw, 200)) : 50
     const courseId = (q.course_id ? String(q.course_id).trim() : '') || null
-    let sql = 'SELECT doc_id, title, course_canvas_id, module_canvas_id, module_item_canvas_id, mime_type, size_bytes, created_at FROM canvas_documents'
+    const assignmentId = (q.assignment_id ? String(q.assignment_id).trim() : '') || null
+    const moduleId = (q.module_id ? String(q.module_id).trim() : '') || null
+    let sql = 'SELECT doc_id, title, course_canvas_id, assignment_canvas_id, module_canvas_id, module_item_canvas_id, mime_type, size_bytes, created_at FROM canvas_documents'
     const params: any[] = []
-    if (courseId) {
-      sql += ' WHERE course_canvas_id = $1'
-      params.push(courseId)
-    }
+    const where: string[] = []
+    if (courseId) { where.push(`course_canvas_id = $${params.length + 1}`); params.push(courseId) }
+    if (assignmentId) { where.push(`assignment_canvas_id = $${params.length + 1}`); params.push(assignmentId) }
+    if (moduleId) { where.push(`module_canvas_id = $${params.length + 1}`); params.push(moduleId) }
+    if (where.length > 0) sql += ' WHERE ' + where.join(' AND ')
     sql += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1)
     params.push(limit)
     const { rows } = await pool.query(sql, params)

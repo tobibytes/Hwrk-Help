@@ -338,13 +338,20 @@ app.get('/ai/search-all', async (req, reply) => {
   const kRaw = Number((req.query as any)?.k ?? 5)
   const k = Number.isFinite(kRaw) ? Math.max(1, Math.min(kRaw, 50)) : 5
   const courseId = ((req.query as any)?.course_id ?? '').toString().trim() || ''
+  const assignmentId = ((req.query as any)?.assignment_id ?? '').toString().trim() || ''
+  const moduleId = ((req.query as any)?.module_id ?? '').toString().trim() || ''
   if (!q) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'q required' } })
   try {
-    // If course filter provided, fetch allowed doc_ids from canvas-service
+    // If filters provided, fetch allowed doc_ids from canvas-service
     let allowed: Set<string> | null = null
-    if (courseId) {
+    if (courseId || assignmentId || moduleId) {
       try {
-        const docsRes = await fetch(`${CANVAS_BASE.replace(/\/$/, '')}/canvas/documents?course_id=${encodeURIComponent(courseId)}&limit=1000`)
+        const params = new URLSearchParams()
+        if (courseId) params.set('course_id', courseId)
+        if (assignmentId) params.set('assignment_id', assignmentId)
+        if (moduleId) params.set('module_id', moduleId)
+        params.set('limit', '1000')
+        const docsRes = await fetch(`${CANVAS_BASE.replace(/\/$/, '')}/canvas/documents?${params.toString()}`)
         if (docsRes.ok) {
           const dj = (await docsRes.json()) as { ok: true; documents: Array<{ doc_id: string }> }
           allowed = new Set((dj.documents || []).map((d) => d.doc_id))
