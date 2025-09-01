@@ -6,7 +6,7 @@ const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://loca
 
 interface SearchResult { id: string; doc_id: string; score: number; snippet: string }
 interface Course { id: string; name: string }
-interface DocMeta { doc_id: string; title: string | null; course_canvas_id: string | null }
+interface DocMeta { doc_id: string; title: string | null; course_canvas_id: string | null; assignment_canvas_id?: string | null }
 
 async function fetchJSON<T>(url: string): Promise<T> {
   const res = await fetch(url, { credentials: 'include' });
@@ -30,6 +30,8 @@ export default function SearchArea() {
   // Filters
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>('');
+  const [assignments, setAssignments] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedAssignment, setSelectedAssignment] = useState<string>('');
 
   // Metadata map for result docs
   const [docMeta, setDocMeta] = useState<Record<string, DocMeta>>({});
@@ -46,6 +48,22 @@ export default function SearchArea() {
   }, []);
 
   const courseOptions = useMemo(() => [{ id: '', name: 'All courses' }, ...courses], [courses]);
+  const assignmentOptions = useMemo(() => [{ id: '', name: 'All assignments' }, ...assignments], [assignments]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // When course changes, load assignments list
+      setAssignments([]);
+      setSelectedAssignment('');
+      if (!selectedCourse) return;
+      try {
+        const j = await fetchJSON<{ ok: true; assignments: Array<{ id: string; name: string }> }>(`${API_BASE}/api/canvas/assignments?course_id=${encodeURIComponent(selectedCourse)}`);
+        if (!cancelled) setAssignments(j.assignments || []);
+      } catch {}
+    })();
+    return () => { cancelled = true };
+  }, [selectedCourse]);
 
   async function loadDocMetadata(forResults: SearchResult[]) {
     // Build set of courseIds to fetch documents for
@@ -80,7 +98,7 @@ export default function SearchArea() {
     setError(null);
     setResults(null);
     try {
-      const url = `${API_BASE}/api/ai/search-all?q=${encodeURIComponent(q)}&k=${encodeURIComponent(String(k))}${selectedCourse ? `&course_id=${encodeURIComponent(selectedCourse)}` : ''}`;
+      const url = `${API_BASE}/api/ai/search-all?q=${encodeURIComponent(q)}&k=${encodeURIComponent(String(k))}${selectedCourse ? `&course_id=${encodeURIComponent(selectedCourse)}` : ''}${selectedAssignment ? `&assignment_id=${encodeURIComponent(selectedAssignment)}` : ''}`;
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
       const json = (await res.json()) as { ok: true; results: SearchResult[] };
@@ -132,6 +150,20 @@ export default function SearchArea() {
               >
                 {courseOptions.map((c) => (
                   <option key={c.id || 'all'} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <TalvraText as="span">Assignment</TalvraText>
+              <select
+                value={selectedAssignment}
+                onChange={(e) => setSelectedAssignment(e.target.value)}
+                disabled={!selectedCourse}
+                style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+              >
+                {assignmentOptions.map((a) => (
+                  <option key={a.id || 'all'} value={a.id}>{a.name}</option>
                 ))}
               </select>
             </label>
