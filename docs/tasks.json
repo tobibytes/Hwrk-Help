@@ -712,7 +712,7 @@
             "title": "feat(notify) assignment reminders",
             "body": "What: scheduler and sender."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T072",
@@ -729,7 +729,7 @@
             "title": "feat(web) reminders settings UI",
             "body": "What: admin UI and routes."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T073",

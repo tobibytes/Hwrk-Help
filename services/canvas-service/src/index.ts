@@ -246,6 +246,29 @@ app.get('/canvas/assignments', async (req, reply) => {
   }
 })
 
+// List modules for a course
+app.get('/canvas/modules', async (req, reply) => {
+  try {
+    const courseId = ((req.query as any)?.course_id ?? '').toString().trim()
+    if (!courseId) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'course_id required' } })
+    const creds = await getUserCanvasCreds(req)
+    if (creds) {
+      const mods = await fetchAll<any>(`${creds.baseUrl.replace(/\/$/, '')}/api/v1/courses/${encodeURIComponent(courseId)}/modules?per_page=50`, creds.token)
+      const modules = (mods || []).map((m: any) => ({ id: String(m.id), name: m.name || m.name || `Module ${m.id}` }))
+      return { ok: true, modules }
+    }
+    // Fallback: derive modules from documents for the course
+    const { rows } = await pool.query(
+      'SELECT DISTINCT module_canvas_id AS id FROM canvas_documents WHERE course_canvas_id = $1 AND module_canvas_id IS NOT NULL ORDER BY module_canvas_id',
+      [courseId]
+    )
+    const modules = rows.map((r: any) => ({ id: String(r.id), name: `Module ${r.id}` }))
+    return { ok: true, modules }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
 // Per-course synchronous sync (kept for compatibility)
 app.post('/canvas/sync/course/:course_id', async (req, reply) => {
   const creds = await getUserCanvasCreds(req)
