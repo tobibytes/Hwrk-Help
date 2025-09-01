@@ -515,7 +515,7 @@ app.post('/canvas/sync', async (req, reply) => {
           if (!ingestRes.ok) {
             app.log.warn({ status: ingestRes.status }, 'ingestion start failed')
           } else {
-processed++
+            processed++
             // Trigger embeddings for this doc (best-effort; idempotency handled by AI service; include simple retries)
             const reqId = (req.headers['x-request-id'] as string) || (req as any).id
             const embedUrl = `${AI_BASE.replace(/\/$/, '')}/ai/embed`
@@ -533,7 +533,7 @@ processed++
               } catch (e) {
                 app.log.warn({ err: e, attempt, docId }, 'ai embed trigger error')
               }
-              // backoff: 250ms, 500ms
+// backoff: 250ms, 500ms
               await new Promise((r) => setTimeout(r, 250 * attempt))
             }
             }

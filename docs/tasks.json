@@ -821,7 +821,7 @@
           "branch": "backend/auto-embed-after-sync",
           "paths": ["services/canvas-service/**", "services/ai-service/**", "services/api-gateway/**"],
           "steps": [
-"Phase 1 (DONE): After successful ingestion of a Canvas document, trigger /ai/embed for the resulting doc_id",
+            "Phase 1 (DONE): After successful ingestion of a Canvas document, trigger /ai/embed for the resulting doc_id",
             "Phase 2 (DONE): Ensure idempotency and retries (skip if embeddings already exist)",
             "Propagate request id and handle failures with logging",
             "Optionally batch embed to avoid rate limits"
