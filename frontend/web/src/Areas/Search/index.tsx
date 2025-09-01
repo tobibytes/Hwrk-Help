@@ -32,6 +32,8 @@ export default function SearchArea() {
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [assignments, setAssignments] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedAssignment, setSelectedAssignment] = useState<string>('');
+  const [modules, setModules] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedModule, setSelectedModule] = useState<string>('');
 
   // Metadata map for result docs
   const [docMeta, setDocMeta] = useState<Record<string, DocMeta>>({});
@@ -49,17 +51,26 @@ export default function SearchArea() {
 
   const courseOptions = useMemo(() => [{ id: '', name: 'All courses' }, ...courses], [courses]);
   const assignmentOptions = useMemo(() => [{ id: '', name: 'All assignments' }, ...assignments], [assignments]);
+  const moduleOptions = useMemo(() => [{ id: '', name: 'All modules' }, ...modules], [modules]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // When course changes, load assignments list
+      // When course changes, load assignments list and modules list
       setAssignments([]);
       setSelectedAssignment('');
+      setModules([]);
+      setSelectedModule('');
       if (!selectedCourse) return;
       try {
-        const j = await fetchJSON<{ ok: true; assignments: Array<{ id: string; name: string }> }>(`${API_BASE}/api/canvas/assignments?course_id=${encodeURIComponent(selectedCourse)}`);
-        if (!cancelled) setAssignments(j.assignments || []);
+        const [aRes, mRes] = await Promise.all([
+          fetchJSON<{ ok: true; assignments: Array<{ id: string; name: string }> }>(`${API_BASE}/api/canvas/assignments?course_id=${encodeURIComponent(selectedCourse)}`),
+          fetchJSON<{ ok: true; modules: Array<{ id: string; name: string }> }>(`${API_BASE}/api/canvas/modules?course_id=${encodeURIComponent(selectedCourse)}`),
+        ]);
+        if (!cancelled) {
+          setAssignments(aRes.assignments || []);
+          setModules(mRes.modules || []);
+        }
       } catch {}
     })();
     return () => { cancelled = true };
@@ -98,7 +109,7 @@ export default function SearchArea() {
     setError(null);
     setResults(null);
     try {
-      const url = `${API_BASE}/api/ai/search-all?q=${encodeURIComponent(q)}&k=${encodeURIComponent(String(k))}${selectedCourse ? `&course_id=${encodeURIComponent(selectedCourse)}` : ''}${selectedAssignment ? `&assignment_id=${encodeURIComponent(selectedAssignment)}` : ''}`;
+      const url = `${API_BASE}/api/ai/search-all?q=${encodeURIComponent(q)}&k=${encodeURIComponent(String(k))}${selectedCourse ? `&course_id=${encodeURIComponent(selectedCourse)}` : ''}${selectedAssignment ? `&assignment_id=${encodeURIComponent(selectedAssignment)}` : ''}${selectedModule ? `&module_id=${encodeURIComponent(selectedModule)}` : ''}`;
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
       const json = (await res.json()) as { ok: true; results: SearchResult[] };
@@ -164,6 +175,20 @@ export default function SearchArea() {
               >
                 {assignmentOptions.map((a) => (
                   <option key={a.id || 'all'} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <TalvraText as="span">Module</TalvraText>
+              <select
+                value={selectedModule}
+                onChange={(e) => setSelectedModule(e.target.value)}
+                disabled={!selectedCourse}
+                style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+              >
+                {moduleOptions.map((m) => (
+                  <option key={m.id || 'all'} value={m.id}>{m.name}</option>
                 ))}
               </select>
             </label>
