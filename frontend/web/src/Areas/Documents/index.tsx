@@ -1,4 +1,4 @@
-import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, SectionHeader, Grid, PageContainer, Text as UiText } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraButton, TalvraCard, SectionHeader, Grid, PageContainer, PageSection, Text as UiText } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { useEffect, useState } from 'react';
 
@@ -46,6 +46,7 @@ export default function DocumentsArea() {
 <SectionHeader title="Documents" subtitle="Recently ingested content and outputs." />
         {error && <TalvraText>Error loading documents: {error}</TalvraText>}
 
+        <PageSection>
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Recent documents</TalvraText>
@@ -60,9 +61,9 @@ export default function DocumentsArea() {
                     <TalvraStack>
                       <TalvraText as="h4">{d.title ?? d.doc_id}</TalvraText>
                       <TalvraStack>
-                        <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}`}>Open</TalvraLink>
-                        <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}/ai`}>AI</TalvraLink>
-                        <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}/video`}>Video</TalvraLink>
+                        <TalvraButton as="a" href={`/documents/${encodeURIComponent(d.doc_id)}`} variant="ghost">Open</TalvraButton>
+                        <TalvraButton as="a" href={`/documents/${encodeURIComponent(d.doc_id)}/ai`} variant="ghost">AI</TalvraButton>
+                        <TalvraButton as="a" href={`/documents/${encodeURIComponent(d.doc_id)}/video`} variant="ghost">Video</TalvraButton>
                       </TalvraStack>
                       <UiText color="gray-500">
                         {d.mime_type ?? 'unknown'} • {d.size_bytes ? `${d.size_bytes} bytes` : 'size unknown'} • {new Date(d.created_at).toLocaleString()}
@@ -74,7 +75,9 @@ export default function DocumentsArea() {
             )}
           </TalvraStack>
         </TalvraCard>
+        </PageSection>
 
+        <PageSection>
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">How to process a file</TalvraText>
@@ -89,7 +92,9 @@ export default function DocumentsArea() {
             </TalvraText>
           </TalvraStack>
         </TalvraCard>
+        </PageSection>
 
+        <PageSection>
         <TalvraStack>
           <TalvraText as="h2">Navigation</TalvraText>
           <TalvraStack>
@@ -107,6 +112,7 @@ export default function DocumentsArea() {
             </TalvraLink>
           </TalvraStack>
         </TalvraStack>
+        </PageSection>
       </TalvraStack>
       </PageContainer>
     </TalvraSurface>

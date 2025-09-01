@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraButton, TalvraLink, SectionHeader, CodeBlock, PageContainer, Text as UiText } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraButton, SectionHeader, CodeBlock, PageContainer, PageSection, Text as UiText } from '@ui';
 import { useParams } from 'react-router-dom';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
@@ -82,6 +82,7 @@ export default function DocumentAI() {
           {busy ? 'Starting…' : 'Start AI'}
         </TalvraButton>
 
+        <PageSection>
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Notes</TalvraText>
@@ -91,6 +92,8 @@ export default function DocumentAI() {
           </TalvraStack>
         </TalvraCard>
 
+        </PageSection>
+        <PageSection>
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Flashcards</TalvraText>
@@ -156,7 +159,10 @@ export default function DocumentAI() {
           </TalvraStack>
         </TalvraCard>
 
-        <TalvraLink href={`/documents/${documentId}`}>Back to Document</TalvraLink>
+        </PageSection>
+        <PageSection>
+        <TalvraButton as="a" href={`/documents/${documentId}`} variant="ghost">Back to Document</TalvraButton>
+        </PageSection>
       </TalvraStack>
       </PageContainer>
     </TalvraSurface>
