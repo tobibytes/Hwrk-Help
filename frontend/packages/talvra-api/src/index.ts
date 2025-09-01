@@ -1,4 +1,4 @@
-import type { QueryKey, UseQueryOptions } from '@tanstack/react-query'
+import type { QueryKey, UseQueryOptions, QueryObserverResult } from '@tanstack/react-query'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 
 // Factory to create a QueryClient with sensible defaults
@@ -21,16 +21,25 @@ export function createQueryClient() {
 export { QueryClientProvider }
 
 // Generic typed useAPI wrapper for GET style queries
+// - Supports manual mode (do not run on mount) and exposes a `run` function
+// - Preserves the original react-query return shape and adds `run`
 export function useAPI<TData = unknown, TError = unknown>(
   key: QueryKey,
   fn: () => Promise<TData>,
-  options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>,
+  options?: (Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'> & { manual?: boolean }),
 ) {
-  return useQuery<TData, TError>({
+  const { manual, ...rest } = options || {}
+  const result = useQuery<TData, TError>({
     queryKey: key,
     queryFn: fn,
-    ...options,
+    // If manual is true, default enabled to false unless explicitly overridden
+    enabled: manual ? false : (rest as any)?.enabled ?? true,
+    ...(rest as any),
   })
+
+  const run = async () => result.refetch() as Promise<QueryObserverResult<TData, TError>>
+
+  return Object.assign(result, { run })
 }
 
 // Example helper for building keys
