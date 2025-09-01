@@ -1,4 +1,4 @@
-import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, SectionHeader } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { useEffect, useState } from 'react';
 
@@ -42,7 +42,7 @@ export default function DocumentsArea() {
   return (
     <TalvraSurface>
       <TalvraStack>
-        <TalvraText as="h1">Documents</TalvraText>
+<SectionHeader title="Documents" subtitle="Recently ingested content and outputs." />
         {error && <TalvraText>Error loading documents: {error}</TalvraText>}
 
         <TalvraCard>

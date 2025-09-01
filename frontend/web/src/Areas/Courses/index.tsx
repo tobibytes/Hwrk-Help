@@ -1,5 +1,5 @@
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, TalvraButton } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, TalvraButton, SectionHeader } from '@ui';
 import { useAPI, qk } from '@api';
 import { loadCourseNames, saveCourseNames, type CourseNameMap } from '@/utils/courseNames';
 import { useState } from 'react';
@@ -46,8 +46,7 @@ export default function CoursesArea() {
   return (
     <TalvraSurface>
       <TalvraStack>
-        <TalvraText as="h1">Courses</TalvraText>
-        <TalvraText>Fetched from Canvas integration (token or fixtures).</TalvraText>
+<SectionHeader title="Courses" subtitle="Fetched from Canvas (token or fixtures)." />
         
         <TalvraStack>
           <TalvraText as="h2">Navigation</TalvraText>
