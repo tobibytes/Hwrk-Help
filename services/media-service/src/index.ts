@@ -40,8 +40,37 @@ app.get('/media/result/:doc_id', async (req, reply) => {
     const existsMp4 = await fs.access(mp4Path).then(() => true).catch(() => false)
     const existsThumb = await fs.access(thumbPath).then(() => true).catch(() => false)
     if (!existsMp4 || !existsThumb) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'results not found' } })
-    return { ok: true, outputs: { mp4: mp4Path, thumbnail: thumbPath } }
+    // Return gateway-friendly blob URLs
+    const base = '/api/media'
+    return { ok: true, outputs: { mp4: `${base}/blob/${encodeURIComponent(docId)}/mp4`, thumbnail: `${base}/blob/${encodeURIComponent(docId)}/thumbnail` } }
   } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+// Blob endpoints to serve media
+app.get('/media/blob/:doc_id/mp4', async (req, reply) => {
+  const { doc_id } = req.params as { doc_id: string }
+  try {
+    const p = path.join(OUTPUT_DIR, `${doc_id}.mp4`)
+    const buf = await fs.readFile(p)
+    reply.header('content-type', 'video/mp4')
+    return buf
+  } catch (e: any) {
+    if ((e as any)?.code === 'ENOENT') return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'mp4 not found' } })
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+app.get('/media/blob/:doc_id/thumbnail', async (req, reply) => {
+  const { doc_id } = req.params as { doc_id: string }
+  try {
+    const p = path.join(OUTPUT_DIR, `${doc_id}.thumb.jpg`)
+    const buf = await fs.readFile(p)
+    reply.header('content-type', 'image/jpeg')
+    return buf
+  } catch (e: any) {
+    if ((e as any)?.code === 'ENOENT') return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'thumbnail not found' } })
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
   }
 })

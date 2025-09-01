@@ -136,6 +136,23 @@ await app.register(httpProxy as any, {
   }
 })
 
+// Public search endpoint: proxy to AI search-all
+app.get('/search', async (req, reply) => {
+  try {
+    const qs = req.url.includes('?') ? req.url.split('?')[1] : ''
+    const url = `${AI_UPSTREAM.replace(/\/$/, '')}/ai/search-all${qs ? `?${qs}` : ''}`
+    const res = await fetch(url)
+    const text = await res.text()
+    reply.code(res.status)
+    for (const [k, v] of res.headers as any) {
+      if (typeof k === 'string' && typeof v === 'string' && ['content-type'].includes(k.toLowerCase())) reply.header(k, v)
+    }
+    return text
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
 // Proxy to notification-service
 const NOTIFY_UPSTREAM = resolveUpstream({
   url: process.env.NOTIFY_SERVICE_URL,
