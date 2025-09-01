@@ -41,20 +41,13 @@ export default function SearchArea() {
     setError(null);
     setResults(null);
     try {
-      const url = `${API_BASE}/api/ai/search-all?q=${encodeURIComponent(q)}&k=${encodeURIComponent(String(k))}`;
+      const url = `${API_BASE}/api/ai/search-all?q=${encodeURIComponent(q)}&k=${encodeURIComponent(String(k))}${selectedCourse ? `&course_id=${encodeURIComponent(selectedCourse)}` : ''}`;
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
       const json = (await res.json()) as { ok: true; results: SearchResult[] };
 
-      let out = json.results;
-      if (selectedCourse) {
-        const docsResp = await fetchJSON<{ ok: true; documents: Array<{ doc_id: string }> }>(
-          `${API_BASE}/api/canvas/documents?course_id=${encodeURIComponent(selectedCourse)}&limit=1000`
-        );
-        const allowed = new Set((docsResp.documents || []).map((d) => d.doc_id));
-        out = out.filter((r) => allowed.has(r.doc_id));
-      }
-      setResults(out);
+      // Server filters by course when provided; no client-side intersection needed
+      setResults(json.results);
     } catch (e: any) {
       setError(String(e?.message || e));
     } finally {
