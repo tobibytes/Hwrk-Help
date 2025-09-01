@@ -108,6 +108,21 @@ services:
         condition: service_started
     ports:
       - "4020:4020"
+
+  notification-service:
+    build:
+      context: ..
+      dockerfile: services/notification-service/Dockerfile
+    container_name: talvra_notification_service
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      api-gateway:
+        condition: service_started
+    ports:
+      - "4040:4040"
+
   canvas-service:
     build:
       context: ..
