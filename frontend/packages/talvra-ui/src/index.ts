@@ -22,6 +22,7 @@ export { Switch, type SwitchProps } from './Switch';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { Grid, type GridProps } from './Grid';
 export { PageContainer, type PageContainerProps } from './PageContainer';
+export { PageSection, type PageSectionProps } from './PageSection';
 export { Divider, type DividerProps } from './Divider';
 export { Text, type TextProps } from './Text';
 

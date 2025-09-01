@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, Input, CodeBlock, SectionHeader, PageContainer, Text as UiText } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraButton, Input, CodeBlock, SectionHeader, PageContainer, PageSection, Text as UiText } from '@ui';
 import { useParams } from 'react-router-dom';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
@@ -121,6 +121,7 @@ export default function DocumentDetailArea() {
 <SectionHeader title={`Document: ${documentId ?? ''}`} />
         {error && <TalvraText>Error: {error}</TalvraText>}
 
+        <PageSection>
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Embeddings</TalvraText>
@@ -133,6 +134,8 @@ export default function DocumentDetailArea() {
           </TalvraStack>
         </TalvraCard>
 
+        </PageSection>
+        <PageSection>
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Semantic search (within this document)</TalvraText>
@@ -177,6 +180,8 @@ export default function DocumentDetailArea() {
           </TalvraStack>
         </TalvraCard>
 
+        </PageSection>
+        <PageSection>
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Structure</TalvraText>
@@ -195,11 +200,14 @@ export default function DocumentDetailArea() {
           </TalvraStack>
         </TalvraCard>
 
+        </PageSection>
+        <PageSection>
         <TalvraStack>
-          <TalvraLink href="/documents">Back to Documents</TalvraLink>
-          <TalvraLink href={`/documents/${documentId}/ai`}>View AI outputs</TalvraLink>
-          <TalvraLink href={`/documents/${documentId}/video`}>View Video</TalvraLink>
+          <TalvraButton as="a" href="/documents" variant="ghost">Back to Documents</TalvraButton>
+          <TalvraButton as="a" href={`/documents/${documentId}/ai`} variant="ghost">View AI outputs</TalvraButton>
+          <TalvraButton as="a" href={`/documents/${documentId}/video`} variant="ghost">View Video</TalvraButton>
         </TalvraStack>
+        </PageSection>
       </TalvraStack>
       </PageContainer>
     </TalvraSurface>

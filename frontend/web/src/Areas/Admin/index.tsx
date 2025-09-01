@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
-import { TalvraStack, TalvraText, TalvraLink, TalvraButton, GlassPanel, SectionHeader, Grid, Text as UiText } from '@ui';
+import { TalvraStack, TalvraText, TalvraLink, TalvraButton, GlassPanel, SectionHeader, Grid, Text as UiText, PageContainer, PageSection } from '@ui';
 import { AuthPanel } from '@/components/AuthPanel';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
@@ -44,6 +44,7 @@ export default function AdminArea() {
   }
 
   return (
+    <PageContainer>
     <TalvraStack>
 <GlassPanel>
         <TalvraStack>
@@ -58,6 +59,7 @@ export default function AdminArea() {
         </TalvraStack>
       </GlassPanel>
 
+      <PageSection>
       <GlassPanel>
         <TalvraStack>
 <TalvraText as="h2">Recent documents</TalvraText>
@@ -76,8 +78,8 @@ export default function AdminArea() {
                     {d.mime_type ?? 'unknown'} • {new Date(d.created_at).toLocaleString()}
                   </UiText>
                   <TalvraStack style={{ marginTop: 8, flexDirection: 'row', gap: 8 }}>
-                    <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}`}>Open</TalvraLink>
-                    <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}/ai`}>AI</TalvraLink>
+                    <TalvraButton as="a" href={`/documents/${encodeURIComponent(d.doc_id)}`} variant="ghost">Open</TalvraButton>
+                    <TalvraButton as="a" href={`/documents/${encodeURIComponent(d.doc_id)}/ai`} variant="ghost">AI</TalvraButton>
                   </TalvraStack>
                 </GlassPanel>
               ))}
@@ -85,13 +87,17 @@ export default function AdminArea() {
           )}
         </TalvraStack>
       </GlassPanel>
+      </PageSection>
 
+      <PageSection>
       <GlassPanel>
         <TalvraStack>
           <TalvraText as="h2">Account</TalvraText>
           <AuthPanel />
         </TalvraStack>
       </GlassPanel>
+      </PageSection>
     </TalvraStack>
+    </PageContainer>
   );
 }

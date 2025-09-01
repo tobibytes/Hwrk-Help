@@ -1,4 +1,4 @@
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, Label, Input, Select, SectionHeader, CodeBlock, PageContainer, Text as UiText } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraButton, Label, Input, Select, SectionHeader, CodeBlock, PageContainer, PageSection, Text as UiText } from '@ui';
 import { useEffect, useMemo, useState } from 'react';
 import { getCourseDisplayName } from '@/utils/courseNames';
 import { useAPI } from '@api';
@@ -128,6 +128,7 @@ export default function SearchArea() {
       <TalvraStack>
 <SectionHeader title="Search" subtitle="Semantic search across your content." />
 
+        <PageSection>
         <TalvraCard>
           <TalvraStack>
 <Label>
@@ -199,7 +200,9 @@ export default function SearchArea() {
             )}
           </TalvraStack>
         </TalvraCard>
+        </PageSection>
 
+        <PageSection>
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Results</TalvraText>
@@ -225,7 +228,7 @@ export default function SearchArea() {
 <CodeBlock>
                           {r.snippet}
                         </CodeBlock>
-                        <TalvraLink href={`/documents/${encodeURIComponent(r.doc_id)}`}>Open document</TalvraLink>
+                        <TalvraButton as="a" href={`/documents/${encodeURIComponent(r.doc_id)}`} variant="ghost">Open document</TalvraButton>
                       </TalvraStack>
                     </TalvraCard>
                   );
@@ -234,6 +237,7 @@ export default function SearchArea() {
             )}
           </TalvraStack>
         </TalvraCard>
+        </PageSection>
       </TalvraStack>
       </PageContainer>
     </TalvraSurface>

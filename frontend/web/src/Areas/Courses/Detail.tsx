@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, SectionHeader, Grid, PageContainer, Text as UiText } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraButton, SectionHeader, Grid, PageContainer, PageSection, Text as UiText } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { getCourseDisplayName, setCourseDisplayName } from '@/utils/courseNames';
 
@@ -177,6 +177,7 @@ useEffect(() => {
       <TalvraStack>
 <SectionHeader title={header} right={<TalvraButton onClick={rename} variant="secondary">Rename</TalvraButton>} />
 
+<PageSection>
 <TalvraStack>
           <TalvraText as="h2">Documents</TalvraText>
           <TalvraStack>
@@ -227,7 +228,9 @@ useEffect(() => {
             </TalvraStack>
           </TalvraCard>
         </TalvraStack>
+        </PageSection>
 
+        <PageSection>
         <TalvraStack>
           <TalvraText as="h2">Assignments</TalvraText>
           {errorAssign && <TalvraText>Error loading assignments: {errorAssign}</TalvraText>}
@@ -257,7 +260,9 @@ useEffect(() => {
             </TalvraStack>
           </TalvraCard>
         </TalvraStack>
+        </PageSection>
 
+        <PageSection>
         <TalvraStack>
           <TalvraText as="h2">Navigation</TalvraText>
           <TalvraStack>
@@ -269,6 +274,7 @@ useEffect(() => {
             </TalvraLink>
           </TalvraStack>
         </TalvraStack>
+        </PageSection>
       </TalvraStack>
       </PageContainer>
     </TalvraSurface>
