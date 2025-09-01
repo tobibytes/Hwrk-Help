@@ -1,4 +1,4 @@
-import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, TalvraButton, Tabs, TabList, Tab, TabPanels, TabPanel, Chip, Toaster, Label, Input, Select, Textarea, SectionHeader } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, TalvraButton, Tabs, TabList, Tab, TabPanels, TabPanel, Chip, Toaster, Label, Input, Select, Textarea, SectionHeader, PageContainer, Text as UiText, Divider } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { CanvasTokenSettings } from '@/components/CanvasTokenSettings';
 import { useEffect, useState } from 'react';
@@ -171,8 +171,10 @@ export default function SettingsArea() {
   return (
     <TalvraSurface>
       <Toaster>
+        <PageContainer>
         <TalvraStack>
 <SectionHeader title="Settings" subtitle="Manage Canvas connection, email reminders, templates, and sync." />
+          <Divider />
 
           <Tabs defaultValue="canvas">
             <TalvraCard>
@@ -221,10 +223,10 @@ export default function SettingsArea() {
                       </Select>
                     </Label>
                     {selectedTemplate && (
-                      <TalvraText style={{ color: '#6b7280' }}>
+                      <UiText color="gray-500">
                         {templates.find((t) => t.name === selectedTemplate)?.description}
                         {' '}Fields: {(templates.find((t) => t.name === selectedTemplate)?.fields || []).join(', ')}
-                      </TalvraText>
+                      </UiText>
                     )}
 <Label>
                       <span className="label-text">To (optional)</span>
@@ -277,9 +279,9 @@ export default function SettingsArea() {
                             </Chip>
                             {job.status === 'failed' && job.error_message ? ` — ${job.error_message}` : ''}
                           </TalvraText>
-                          <TalvraText style={{ color: '#64748b' }}>
+                          <UiText color="gray-500">
                             processed {job.processed} • skipped {job.skipped} • errors {job.errors}
-                          </TalvraText>
+                          </UiText>
                         </TalvraStack>
                       </TalvraCard>
                     )}
@@ -304,6 +306,7 @@ export default function SettingsArea() {
             </TalvraStack>
           </TalvraStack>
         </TalvraStack>
+        </PageContainer>
       </Toaster>
     </TalvraSurface>
   );
