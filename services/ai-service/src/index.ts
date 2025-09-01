@@ -1,6 +1,7 @@
 import Fastify from 'fastify'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 
 const app = Fastify({ logger: { level: 'info' } })
 
@@ -40,17 +41,18 @@ app.post('/ai/start', async (req, reply) => {
     }
 
     let notes: string
-    let flashcards: Array<{ q: string; a: string; hint?: string }>
+    let flashcards: Array<{ q: string; a: string; hint?: string; source?: string | string[] }>
 
     if (AI_GENERATION === 'real' && OPENAI_API_KEY) {
       // Trim markdown to avoid context overflow
       const MAX_CHARS = 12000
       const input = markdown.length > MAX_CHARS ? markdown.slice(0, MAX_CHARS) : markdown
 
-      // Generate notes
+      // Generate notes with guardrails and source citations
+      const headings = Array.from(new Set((markdown.match(/^#{1,6}\s+.*$/gm) || []).map((h) => h.replace(/^#{1,6}\s+/, '').trim()))).slice(0, 50)
       const notesPrompt = [
-        { role: 'system', content: 'You are a concise study assistant. Produce clear, well-structured markdown notes (headings, bullets) that explain concepts. Avoid giving answers to graded questions; focus on understanding.' },
-        { role: 'user', content: `Create study notes in markdown for the following material. Use headings and bullet points.\n\n---\n${input}` }
+        { role: 'system', content: 'You are a concise study assistant. Produce clear, well-structured markdown notes (headings, bullets) that explain concepts. Do NOT provide direct answers to graded questions or step-by-step exam solutions. Focus on understanding and references. When you include facts or definitions, add inline citations like [§ Section Title] referencing the provided section titles. Keep it under 1200 words.' },
+        { role: 'user', content: `Create study notes in markdown for the following material. Use headings and bullet points. Add inline citations like [§ Section] that match one of these section titles if applicable: ${JSON.stringify(headings)}\n\n---\n${input}` }
       ]
       const notesRes = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -61,10 +63,10 @@ app.post('/ai/start', async (req, reply) => {
       const notesJson = await notesRes.json()
       notes = (notesJson.choices?.[0]?.message?.content || '').trim() || '# Notes\n\n(Empty)'
 
-      // Generate flashcards
+      // Generate flashcards with hints and section sources
       const cardsPrompt = [
-        { role: 'system', content: 'You create helpful study flashcards. Return ONLY a JSON array of objects with keys q (question), a (answer), and optional hint. Avoid exam answers; focus on concepts.' },
-        { role: 'user', content: `Based on this material, create 8-12 flashcards. Return JSON only.\n\n---\n${input}` }
+        { role: 'system', content: 'You create helpful study flashcards. Return ONLY a JSON object with key "flashcards" that is an array of objects: { q: string, a: string, hint?: string, source?: string | string[] }. Do NOT provide direct exam answers. Focus on core concepts. When possible, set "source" to a section title (from the provided list) or array of titles.' },
+        { role: 'user', content: `Based on this material, create 8-12 flashcards. Use clear, concept-focused questions and answers. Available section titles: ${JSON.stringify(headings)}. Return JSON only in the format {"flashcards":[...]}\n\n---\n${input}` }
       ]
       const cardsRes = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -77,13 +79,14 @@ app.post('/ai/start', async (req, reply) => {
       // Parse JSON. It could be array or object with an array
       try {
         const parsed = JSON.parse(raw)
-        flashcards = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.flashcards) ? parsed.flashcards : [])
+        const arr = Array.isArray(parsed) ? parsed : (Array.isArray((parsed as any)?.flashcards) ? (parsed as any).flashcards : [])
+        flashcards = arr as any
       } catch {
         // fallback minimal card
         flashcards = [{ q: 'What is the main idea?', a: 'Refer to notes.' }]
       }
       // Ensure shape
-      flashcards = flashcards.map((c: any) => ({ q: String(c.q || c.question || ''), a: String(c.a || c.answer || ''), hint: c.hint ? String(c.hint) : undefined })).filter((c) => c.q && c.a)
+      flashcards = flashcards.map((c: any) => ({ q: String(c.q || c.question || ''), a: String(c.a || c.answer || ''), hint: c.hint ? String(c.hint) : undefined, source: c.source ? c.source : undefined })).filter((c) => c.q && c.a)
       if (flashcards.length === 0) flashcards = [{ q: 'What is the main idea?', a: 'Refer to notes.' }]
     } else {
       // Stub generation
@@ -92,13 +95,23 @@ app.post('/ai/start', async (req, reply) => {
     }
 
     const effectiveDocId = docId || `manual-${Date.now()}`
-    const notesPath = path.join(OUTPUT_DIR, `${effectiveDocId}.notes.md`)
-    const cardsPath = path.join(OUTPUT_DIR, `${effectiveDocId}.flashcards.json`)
+    const versionId = randomUUID()
+    const notesPath = path.join(OUTPUT_DIR, `${effectiveDocId}.${versionId}.notes.md`)
+    const cardsPath = path.join(OUTPUT_DIR, `${effectiveDocId}.${versionId}.flashcards.json`)
     await fs.writeFile(notesPath, notes, 'utf8')
     await fs.writeFile(cardsPath, JSON.stringify(flashcards, null, 2), 'utf8')
 
+    // Update manifest (versioning)
+    const manifestPath = path.join(OUTPUT_DIR, `${effectiveDocId}.manifest.json`)
+    const manifest = await fs.readFile(manifestPath, 'utf8').then((t) => JSON.parse(t)).catch(() => ({ doc_id: effectiveDocId, versions: [] as any[] }))
+    const nowIso = new Date().toISOString()
+    // mark existing as deprecated=false remains, we'll keep only one latest non-deprecated
+    for (const v of manifest.versions) v.deprecated = true
+    manifest.versions.unshift({ version_id: versionId, created_at: nowIso, deprecated: false, notes_file: path.basename(notesPath), flashcards_file: path.basename(cardsPath), model: (process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini'), generation: (process.env.AI_GENERATION || 'stub') })
+    await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf8')
+
     const base = '/api/ai'
-    return { ok: true, doc_id: effectiveDocId, outputs: { notes: `${base}/blob/${encodeURIComponent(effectiveDocId)}/notes`, flashcards: `${base}/blob/${encodeURIComponent(effectiveDocId)}/flashcards` } }
+    return { ok: true, doc_id: effectiveDocId, version_id: versionId, outputs: { notes: `${base}/blob/${encodeURIComponent(effectiveDocId)}/notes`, flashcards: `${base}/blob/${encodeURIComponent(effectiveDocId)}/flashcards` } }
   } catch (e: any) {
     req.log.error({ err: e }, 'ai start failed')
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
@@ -108,9 +121,17 @@ app.post('/ai/start', async (req, reply) => {
 app.get('/ai/result/:doc_id', async (req, reply) => {
   const params = req.params as { doc_id: string }
   const docId = params.doc_id
-  const notesPath = path.join(OUTPUT_DIR, `${docId}.notes.md`)
-  const cardsPath = path.join(OUTPUT_DIR, `${docId}.flashcards.json`)
   try {
+    const manifestPath = path.join(OUTPUT_DIR, `${docId}.manifest.json`)
+    const manifest = await fs.readFile(manifestPath, 'utf8').then((t) => JSON.parse(t)).catch(() => null)
+    if (manifest && Array.isArray(manifest.versions) && manifest.versions.length > 0) {
+      const latest = manifest.versions.find((v: any) => !v.deprecated) || manifest.versions[0]
+      const base = '/api/ai'
+      return { ok: true, version_id: latest.version_id, outputs: { notes: `${base}/blob/${encodeURIComponent(docId)}/notes`, flashcards: `${base}/blob/${encodeURIComponent(docId)}/flashcards` } }
+    }
+    // Legacy fallback: non-versioned
+    const notesPath = path.join(OUTPUT_DIR, `${docId}.notes.md`)
+    const cardsPath = path.join(OUTPUT_DIR, `${docId}.flashcards.json`)
     const existsNotes = await fs.access(notesPath).then(() => true).catch(() => false)
     const existsCards = await fs.access(cardsPath).then(() => true).catch(() => false)
     if (!existsNotes || !existsCards) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'results not found' } })
@@ -122,16 +143,48 @@ app.get('/ai/result/:doc_id', async (req, reply) => {
 })
 
 // -------- RAG scaffolding: chunk + embed + search --------
-function chunkText(text: string, maxLen = 1200, overlap = 200): string[] {
-  const chunks: string[] = []
-  let i = 0
-  while (i < text.length) {
-    const end = Math.min(text.length, i + maxLen)
-    chunks.push(text.slice(i, end))
-    if (end === text.length) break
-    i = Math.max(i + maxLen - overlap, end)
+// Section-aware chunking for markdown: split by headings and sub-split long sections by paragraphs
+function chunkMarkdownSections(docId: string, text: string, targetLen = 1200): Array<{ id: string; heading: string; text: string }> {
+  const lines = text.split(/\r?\n/)
+  const sections: { heading: string; text: string }[] = []
+  let current = { heading: 'Introduction', text: '' }
+  for (const line of lines) {
+    const m = /^(#{1,6})\s+(.*)$/.exec(line)
+    if (m) {
+      if (current.text.trim().length > 0) sections.push(current)
+      current = { heading: m[2].trim(), text: '' }
+    } else {
+      current.text += (current.text ? '\n' : '') + line
+    }
   }
-  return chunks
+  if (current.text.trim().length > 0) sections.push(current)
+
+  const out: Array<{ id: string; heading: string; text: string }> = []
+  let secIdx = 0
+  for (const sec of sections) {
+    const body = sec.text.trim()
+    if (body.length <= targetLen) {
+      out.push({ id: `${docId}-s${secIdx++}`, heading: sec.heading || 'Section', text: body })
+      continue
+    }
+    // Sub-split by paragraphs respecting target length
+    const paras = body.split(/\n\s*\n/)
+    let buf = ''
+    let part = 1
+    for (const p of paras) {
+      const candidate = buf ? buf + '\n\n' + p : p
+      if (candidate.length > targetLen && buf) {
+        out.push({ id: `${docId}-s${secIdx - 0}-p${part++}`, heading: sec.heading || 'Section', text: buf })
+        buf = p
+      } else {
+        buf = candidate
+      }
+    }
+    if (buf.trim()) out.push({ id: `${docId}-s${secIdx++}-p${part}`, heading: sec.heading || 'Section', text: buf })
+  }
+  // Fallback if nothing parsed
+  if (out.length === 0) out.push({ id: `${docId}-s0`, heading: 'Document', text })
+  return out
 }
 
 async function embedTexts(texts: string[]): Promise<number[][]> {
@@ -203,22 +256,30 @@ app.post('/ai/embed', async (req, reply) => {
     }
     if (!text) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'markdown not ready' } })
 
-    const chunks = chunkText(text)
-    const vecs = await embedTexts(chunks)
-    const payload = { doc_id: docId, model: OPENAI_EMBED_MODEL, chunks: chunks.map((t, i) => ({ id: `${docId}-${i}`, text: t, vector: vecs[i] })) }
+    const sections = chunkMarkdownSections(docId, text)
+    const vecs = await embedTexts(sections.map((s) => s.text))
+    const payload = { doc_id: docId, model: OPENAI_EMBED_MODEL, chunks: sections.map((s, i) => ({ id: s.id, text: s.text, vector: vecs[i] })) }
     await fs.writeFile(outPath, JSON.stringify(payload), 'utf8')
-    return { ok: true, doc_id: docId, count: chunks.length }
+    return { ok: true, doc_id: docId, count: sections.length }
   } catch (e: any) {
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
   }
 })
 
 
-// Serve AI output blobs
+// Serve AI output blobs (latest version)
 app.get('/ai/blob/:doc_id/notes', async (req, reply) => {
   const { doc_id } = req.params as { doc_id: string }
-  const notesPath = path.join(OUTPUT_DIR, `${doc_id}.notes.md`)
   try {
+    const manifestPath = path.join(OUTPUT_DIR, `${doc_id}.manifest.json`)
+    const manifest = await fs.readFile(manifestPath, 'utf8').then((t) => JSON.parse(t)).catch(() => null)
+    let notesPath: string
+    if (manifest && Array.isArray(manifest.versions) && manifest.versions.length > 0) {
+      const latest = manifest.versions.find((v: any) => !v.deprecated) || manifest.versions[0]
+      notesPath = path.join(OUTPUT_DIR, latest.notes_file)
+    } else {
+      notesPath = path.join(OUTPUT_DIR, `${doc_id}.notes.md`)
+    }
     const buf = await fs.readFile(notesPath)
     reply.header('content-type', 'text/markdown; charset=utf-8')
     return buf.toString('utf8')
@@ -230,8 +291,16 @@ app.get('/ai/blob/:doc_id/notes', async (req, reply) => {
 
 app.get('/ai/blob/:doc_id/flashcards', async (req, reply) => {
   const { doc_id } = req.params as { doc_id: string }
-  const cardsPath = path.join(OUTPUT_DIR, `${doc_id}.flashcards.json`)
   try {
+    const manifestPath = path.join(OUTPUT_DIR, `${doc_id}.manifest.json`)
+    const manifest = await fs.readFile(manifestPath, 'utf8').then((t) => JSON.parse(t)).catch(() => null)
+    let cardsPath: string
+    if (manifest && Array.isArray(manifest.versions) && manifest.versions.length > 0) {
+      const latest = manifest.versions.find((v: any) => !v.deprecated) || manifest.versions[0]
+      cardsPath = path.join(OUTPUT_DIR, latest.flashcards_file)
+    } else {
+      cardsPath = path.join(OUTPUT_DIR, `${doc_id}.flashcards.json`)
+    }
     const json = JSON.parse(await fs.readFile(cardsPath, 'utf8'))
     reply.header('content-type', 'application/json; charset=utf-8')
     return json
@@ -307,6 +376,19 @@ app.get('/ai/search-all', async (req, reply) => {
     rows.sort((a, b) => b.score - a.score)
     const top = rows.slice(0, k).map((r) => ({ id: r.id, doc_id: r.doc_id, score: r.score, snippet: r.text.slice(0, 300) + (r.text.length > 300 ? ' …' : '') }))
     return { ok: true, q, results: top }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+// List versions for a document (new)
+app.get('/ai/versions/:doc_id', async (req, reply) => {
+  const { doc_id } = req.params as { doc_id: string }
+  try {
+    const manifestPath = path.join(OUTPUT_DIR, `${doc_id}.manifest.json`)
+    const manifest = await fs.readFile(manifestPath, 'utf8').then((t) => JSON.parse(t)).catch(() => null)
+    if (!manifest) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'no versions' } })
+    return { ok: true, doc_id, versions: manifest.versions || [] }
   } catch (e: any) {
     return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
   }
