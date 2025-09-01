@@ -50,9 +50,9 @@ export default function AdminArea() {
           <SectionHeader title="Welcome back" subtitle="Quick actions to get you going." />
           <TalvraStack style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <TalvraButton onClick={syncAllNow}>Sync Canvas</TalvraButton>
-            <TalvraButton as="a" href={buildPath(FRONT_ROUTES.COURSES)}>Browse Courses</TalvraButton>
-            <TalvraButton as="a" href={buildPath(FRONT_ROUTES.DOCUMENTS)}>View Documents</TalvraButton>
-            <TalvraButton as="a" href={buildPath(FRONT_ROUTES.SETTINGS)}>Settings</TalvraButton>
+<TalvraButton as="a" href={buildPath(FRONT_ROUTES.COURSES)} variant="secondary">Browse Courses</TalvraButton>
+            <TalvraButton as="a" href={buildPath(FRONT_ROUTES.DOCUMENTS)} variant="secondary">View Documents</TalvraButton>
+            <TalvraButton as="a" href={buildPath(FRONT_ROUTES.SETTINGS)} variant="secondary">Settings</TalvraButton>
           </TalvraStack>
           {syncMsg && <TalvraText>{syncMsg}</TalvraText>}
         </TalvraStack>
