@@ -80,6 +80,13 @@ export const FRONT_ROUTES = {
     params: ['studyAidId'], 
     description: 'Individual study aid viewer',
   },
+
+  // Search
+  SEARCH: {
+    path: '/search',
+    name: 'Search',
+    description: 'Semantic search across your content',
+  },
   
   // User management routes
   PROFILE: {

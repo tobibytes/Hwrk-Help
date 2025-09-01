@@ -15,6 +15,7 @@ const OUTPUT_DIR = (() => {
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || ''
 const OPENAI_EMBED_MODEL = process.env.OPENAI_EMBED_MODEL || 'text-embedding-3-small'
 const INGESTION_BASE = process.env.INGESTION_SERVICE_URL || 'http://ingestion-service:4010'
+const CANVAS_BASE = process.env.CANVAS_SERVICE_URL || 'http://canvas-service:4002'
 
 app.get('/ai/health', async () => ({ ok: true }))
 
@@ -262,12 +263,25 @@ app.get('/ai/search', async (req, reply) => {
   }
 })
 
+// Cross-document semantic search (optionally filtered by course)
 app.get('/ai/search-all', async (req, reply) => {
   const q = ((req.query as any)?.q ?? '').toString().trim()
   const kRaw = Number((req.query as any)?.k ?? 5)
   const k = Number.isFinite(kRaw) ? Math.max(1, Math.min(kRaw, 50)) : 5
+  const courseId = ((req.query as any)?.course_id ?? '').toString().trim() || ''
   if (!q) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'q required' } })
   try {
+    // If course filter provided, fetch allowed doc_ids from canvas-service
+    let allowed: Set<string> | null = null
+    if (courseId) {
+      try {
+        const docsRes = await fetch(`${CANVAS_BASE.replace(/\/$/, '')}/canvas/documents?course_id=${encodeURIComponent(courseId)}&limit=1000`)
+        if (docsRes.ok) {
+          const dj = (await docsRes.json()) as { ok: true; documents: Array<{ doc_id: string }> }
+          allowed = new Set((dj.documents || []).map((d) => d.doc_id))
+        }
+      } catch {}
+    }
     const files = await fs.readdir(OUTPUT_DIR).catch(() => [])
     const embFiles = files.filter((f) => f.endsWith('.embeddings.json'))
     if (embFiles.length === 0) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'no embeddings available' } })
@@ -281,6 +295,7 @@ app.get('/ai/search-all', async (req, reply) => {
         const full = path.join(OUTPUT_DIR, f)
         const json = JSON.parse(await fs.readFile(full, 'utf8')) as { doc_id?: string; chunks: Array<{ id: string; text: string; vector: number[] }> }
         const docId = json.doc_id || f.replace(/\.embeddings\.json$/, '')
+        if (allowed && !allowed.has(docId)) continue
         for (const c of json.chunks) {
           const score = cosine(qVec, c.vector)
           rows.push({ id: c.id, doc_id: docId, text: c.text, score })

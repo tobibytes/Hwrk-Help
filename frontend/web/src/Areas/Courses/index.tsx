@@ -1,6 +1,8 @@
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, TalvraButton } from '@ui';
 import { useAPI, qk } from '@api';
+import { loadCourseNames, saveCourseNames, type CourseNameMap } from '@/utils/courseNames';
+import { useState } from 'react';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
 
@@ -23,6 +25,23 @@ export default function CoursesArea() {
   });
 
   const courses = coursesQ.data?.courses ?? [];
+
+  // Local display name overrides (persisted)
+  const [names, setNames] = useState<CourseNameMap>(() => loadCourseNames());
+
+  function displayName(c: Course) {
+    return (names && names[c.id]) || c.name;
+  }
+
+  function renameCourse(c: Course) {
+    const current = (names && names[c.id]) || '';
+    const next = window.prompt('Set display name for this course', current || c.name)?.trim();
+    if (next === undefined) return;
+    const copy = { ...(names || {}) };
+    if (next) copy[c.id] = next; else delete copy[c.id];
+    try { saveCourseNames(copy) } catch {}
+    setNames(copy);
+  }
 
   return (
     <TalvraSurface>
@@ -62,12 +81,17 @@ export default function CoursesArea() {
                   courses.map((c) => (
                     <TalvraCard key={c.id}>
                       <TalvraStack>
-                        <TalvraText as="h4">{c.name}</TalvraText>
+                        <TalvraText as="h4">{displayName(c)}</TalvraText>
                         <TalvraText>ID: {c.id}</TalvraText>
                         {c.term && <TalvraText>Term: {c.term}</TalvraText>}
-                        <TalvraLink href={buildPath(FRONT_ROUTES.COURSE_DETAIL, { courseId: c.id })}>
-                          View course
-                        </TalvraLink>
+                        <TalvraStack>
+                          <TalvraLink href={buildPath(FRONT_ROUTES.COURSE_DETAIL, { courseId: c.id })}>
+                            View course
+                          </TalvraLink>
+                          <TalvraButton onClick={() => renameCourse(c)}>
+                            Rename
+                          </TalvraButton>
+                        </TalvraStack>
                       </TalvraStack>
                     </TalvraCard>
                   ))
