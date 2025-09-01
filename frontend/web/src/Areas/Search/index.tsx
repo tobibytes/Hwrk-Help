@@ -1,4 +1,4 @@
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, Label, Input, Select, SectionHeader, CodeBlock } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, Label, Input, Select, SectionHeader, CodeBlock, PageContainer, Text as UiText } from '@ui';
 import { useEffect, useMemo, useState } from 'react';
 import { getCourseDisplayName } from '@/utils/courseNames';
 import { useAPI } from '@api';
@@ -124,6 +124,7 @@ export default function SearchArea() {
 
   return (
     <TalvraSurface>
+      <PageContainer>
       <TalvraStack>
 <SectionHeader title="Search" subtitle="Semantic search across your content." />
 
@@ -194,7 +195,7 @@ export default function SearchArea() {
               {searchQ.isFetching ? 'Searching…' : 'Search'}
             </TalvraButton>
             {searchQ.isError && (
-              <TalvraText style={{ color: '#dc2626' }}>Error: {String((searchQ.error as any)?.message ?? searchQ.error)}</TalvraText>
+              <UiText color="red-600">Error: {String((searchQ.error as any)?.message ?? searchQ.error)}</UiText>
             )}
           </TalvraStack>
         </TalvraCard>
@@ -218,9 +219,9 @@ export default function SearchArea() {
                       <TalvraStack>
                         <TalvraText as="h4">{title}</TalvraText>
                         {courseLabel && (
-                          <TalvraText style={{ color: '#475569' }}>Course: {courseLabel}{courseLabel !== courseId ? ` (${courseId})` : ''}</TalvraText>
+                          <UiText color="gray-500">Course: {courseLabel}{courseLabel !== courseId ? ` (${courseId})` : ''}</UiText>
                         )}
-                        <TalvraText style={{ color: '#64748b' }}>Score: {r.score.toFixed(3)}</TalvraText>
+                        <UiText color="gray-500">Score: {r.score.toFixed(3)}</UiText>
 <CodeBlock>
                           {r.snippet}
                         </CodeBlock>
@@ -234,6 +235,7 @@ export default function SearchArea() {
           </TalvraStack>
         </TalvraCard>
       </TalvraStack>
+      </PageContainer>
     </TalvraSurface>
   );
 }

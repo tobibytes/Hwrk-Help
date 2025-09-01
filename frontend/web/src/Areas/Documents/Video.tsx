@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, Video, TalvraLink, TalvraButton, SectionHeader } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, Video, TalvraLink, TalvraButton, SectionHeader, PageContainer } from '@ui';
 import { useParams } from 'react-router-dom';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
@@ -56,6 +56,7 @@ export default function DocumentVideo() {
 
   return (
     <TalvraSurface>
+      <PageContainer>
       <TalvraStack>
 <SectionHeader title={`Video: ${documentId ?? ''}`} subtitle="Auto-generated video preview." />
         {error && <TalvraText>Error: {error}</TalvraText>}
@@ -78,6 +79,7 @@ export default function DocumentVideo() {
           <TalvraLink href={`/documents/${documentId}`}>Back to Document</TalvraLink>
         </TalvraStack>
       </TalvraStack>
+      </PageContainer>
     </TalvraSurface>
   );
 }
