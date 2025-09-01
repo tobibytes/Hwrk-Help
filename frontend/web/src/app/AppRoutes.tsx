@@ -1,15 +1,19 @@
 import { Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { FRONT_ROUTES, buildPath } from './routes';
-import AdminArea from '@/Areas/Admin';
-import CoursesArea from '@/Areas/Courses';
+// Import lovable pages
+import LovableIndex from '@/lovable/pages/Index';
+import LovableCourses from '@/lovable/pages/Courses';
+import LovableDocuments from '@/lovable/pages/Documents';
+import LovableSettings from '@/lovable/pages/Settings';
+import LovableSearch from '@/lovable/pages/Search';
+import LovableNotFound from '@/lovable/pages/NotFound';
+
+// Legacy pages (kept for functionality wiring; will be migrated into lovable pages)
 import CourseDetailArea from '@/Areas/Courses/Detail';
-import SettingsArea from '@/Areas/Settings';
-import DocumentsArea from '@/Areas/Documents';
 import DocumentDetailArea from '@/Areas/Documents/Detail';
 import DocumentAIArea from '@/Areas/Documents/AI';
 import DocumentVideoArea from '@/Areas/Documents/Video';
-import SearchArea from '@/Areas/Search';
 
 // Create router configuration
 const router = createBrowserRouter([
@@ -17,7 +21,7 @@ const router = createBrowserRouter([
     path: '/',
     element: (
       <Suspense fallback={<div>Loading...</div>}>
-        <AdminArea />
+        <LovableIndex />
       </Suspense>
     ),
   },
@@ -25,7 +29,7 @@ const router = createBrowserRouter([
     path: buildPath(FRONT_ROUTES.ADMIN),
     element: (
       <Suspense fallback={<div>Loading...</div>}>
-        <AdminArea />
+        <LovableIndex />
       </Suspense>
     ),
   },
@@ -33,7 +37,7 @@ const router = createBrowserRouter([
     path: buildPath(FRONT_ROUTES.COURSES),
     element: (
       <Suspense fallback={<div>Loading...</div>}>
-        <CoursesArea />
+        <LovableCourses />
       </Suspense>
     ),
   },
@@ -49,7 +53,7 @@ const router = createBrowserRouter([
     path: buildPath(FRONT_ROUTES.SETTINGS),
     element: (
       <Suspense fallback={<div>Loading...</div>}>
-        <SettingsArea />
+        <LovableSettings />
       </Suspense>
     ),
   },
@@ -57,7 +61,7 @@ const router = createBrowserRouter([
     path: buildPath(FRONT_ROUTES.DOCUMENTS),
     element: (
       <Suspense fallback={<div>Loading...</div>}>
-        <DocumentsArea />
+        <LovableDocuments />
       </Suspense>
     ),
   },
@@ -89,7 +93,15 @@ const router = createBrowserRouter([
     path: buildPath(FRONT_ROUTES.SEARCH),
     element: (
       <Suspense fallback={<div>Loading...</div>}>
-        <SearchArea />
+        <LovableSearch />
+      </Suspense>
+    ),
+  },
+  {
+    path: '*',
+    element: (
+      <Suspense fallback={<div>Loading...</div>}>
+        <LovableNotFound />
       </Suspense>
     ),
   },

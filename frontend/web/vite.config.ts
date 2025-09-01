@@ -9,6 +9,12 @@ export default defineConfig({
   envDir: path.resolve(__dirname, '..'),
   resolve: {
     alias: {
+      // Specific lovable aliases first so they win over generic '@'
+      '@/components/ui': path.resolve(__dirname, './src/lovable/components/ui'),
+      '@/components/layout': path.resolve(__dirname, './src/lovable/components/layout'),
+      '@/hooks': path.resolve(__dirname, './src/lovable/hooks'),
+      '@/lib': path.resolve(__dirname, './src/lovable/lib'),
+
       '@': path.resolve(__dirname, './src'),
       '@ui': path.resolve(__dirname, '../packages/talvra-ui/src'),
       '@hooks': path.resolve(__dirname, '../packages/talvra-hooks/src'),

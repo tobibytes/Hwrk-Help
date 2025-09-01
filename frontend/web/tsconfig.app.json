@@ -36,7 +36,11 @@
       "@api": ["../packages/talvra-api/src"],
       "@api/*": ["../packages/talvra-api/src/*"],
       "@constants": ["../packages/talvra-constants/src"],
-      "@constants/*": ["../packages/talvra-constants/src/*"]
+      "@constants/*": ["../packages/talvra-constants/src/*"],
+      "@/components/ui/*": ["./src/lovable/components/ui/*"],
+      "@/components/layout/*": ["./src/lovable/components/layout/*"],
+      "@/hooks/*": ["./src/lovable/hooks/*"],
+      "@/lib/*": ["./src/lovable/lib/*"]
     }
   },
   "include": ["src"]
