@@ -102,6 +102,19 @@ export default function SettingsArea() {
     return () => { stopped = true; clearInterval(interval); };
   }, [jobId]);
 
+  async function sendTestReminder() {
+    setTestMsg(null);
+    try {
+      await postJSON(`${API_BASE}/api/notify/test`, { to: testEmail || undefined });
+      setTestMsg('Test reminder sent (or logged if SMTP not configured).');
+    } catch (e: any) {
+      setTestMsg(`Test reminder failed: ${String(e?.message || e)}`);
+    }
+  }
+
+  const [testEmail, setTestEmail] = useState('');
+  const [testMsg, setTestMsg] = useState<string | null>(null);
+
   return (
     <TalvraSurface>
       <TalvraStack>
@@ -110,6 +123,25 @@ export default function SettingsArea() {
         <TalvraCard>
           <TalvraStack>
             <CanvasTokenSettings />
+          </TalvraStack>
+        </TalvraCard>
+
+        <TalvraCard>
+          <TalvraStack>
+            <TalvraText as="h3">Reminders</TalvraText>
+            <TalvraStack>
+              <label>
+                <TalvraText as="span">Test email (optional)</TalvraText>
+                <input
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="you@example.com (leave blank to use server default)"
+                  style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                />
+              </label>
+              <TalvraButton onClick={sendTestReminder}>Send test reminder</TalvraButton>
+              {testMsg && <TalvraText>{testMsg}</TalvraText>}
+            </TalvraStack>
           </TalvraStack>
         </TalvraCard>
 
