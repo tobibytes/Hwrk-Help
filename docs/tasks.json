@@ -1155,6 +1155,39 @@
             "body": "What: lazy routes and cleanup."
           },
           "completed": false
+        },
+        {
+          "id": "T125",
+          "title": "Refactor frontend using Lovable outputs (non-breaking)",
+          "branch": "web/lovable-refactor",
+          "paths": [
+            "frontend/web/src/**",
+            "frontend/packages/talvra-ui/**",
+            "lovable/**"
+          ],
+          "steps": [
+            "Analyze Lovable-provided UI folder and extract styles/components",
+            "Introduce any new primitives (Tabs, Chip, Toast, etc.) into @ui and export from index.ts",
+            "Refactor Areas (Admin, Courses, Course Detail, Documents Detail/AI/Video, Search, Settings) to use the new @ui components",
+            "Preserve all data flows and API contracts (fetch via /api/* with credentials)",
+            "Ensure no raw HTML tags in Areas; follow theme tokens and accessibility rules",
+            "Wire AppLayout and navigation consistently across pages"
+          ],
+          "run": [
+            "pnpm --filter web build",
+            "pnpm --filter web dev"
+          ],
+          "acceptance": [
+            "All pages function as before (sync, embeddings, search, reminders, video)",
+            "No raw inputs/pre tags in Areas; only @ui primitives",
+            "Visual design matches Lovable styling, adapted to our theme",
+            "Routes unchanged; API calls remain identical and succeed"
+          ],
+          "pr": {
+            "title": "feat(web+ui): T125 integrate Lovable UI (non-breaking refactor)",
+            "body": "What: integrated Lovable styling/components into @ui; refactored Areas to use them; preserved endpoints and flows. How: extracted components to packages/talvra-ui, updated pages, verified against lovable.md acceptance criteria."
+          },
+          "completed": false
         }
       ]
     }
