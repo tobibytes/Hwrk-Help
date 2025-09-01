@@ -17,7 +17,11 @@ async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
 export default function DocumentAI() {
   const { documentId } = useParams<{ documentId: string }>();
   const [notes, setNotes] = useState<string | null>(null);
-  const [cards, setCards] = useState<any[] | null>(null);
+  interface Flashcard { q: string; a: string; hint?: string; source?: string | string[] }
+  const [cards, setCards] = useState<Flashcard[] | null>(null);
+  const [cardIdx, setCardIdx] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [showHint, setShowHint] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -50,7 +54,14 @@ export default function DocumentAI() {
         fetch(`${API_BASE}${res.outputs.flashcards}`, { credentials: 'include' }).then((r) => r.json()),
       ]);
       setNotes(notesText);
-      setCards(cardsJson);
+      // Normalize cards: ensure array of {q,a,hint?,source?}
+      const arr: Flashcard[] = Array.isArray(cardsJson)
+        ? (cardsJson as Flashcard[])
+        : (Array.isArray((cardsJson as any)?.flashcards) ? (cardsJson as any).flashcards : []);
+      setCards(arr);
+      setCardIdx(0);
+      setShowAnswer(false);
+      setShowHint(false);
     } catch (e: any) {
       setError(String(e?.message || e));
     }
@@ -82,9 +93,63 @@ export default function DocumentAI() {
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Flashcards</TalvraText>
-            <pre style={{ whiteSpace: 'pre-wrap', overflowX: 'auto', background: '#f8fafc', padding: 12, borderRadius: 8 }}>
-              {cards ? JSON.stringify(cards, null, 2) : 'No flashcards yet.'}
-            </pre>
+            {!cards || cards.length === 0 ? (
+              <TalvraText>No flashcards yet.</TalvraText>
+            ) : (
+              <TalvraStack>
+                <TalvraText style={{ color: '#64748b' }}>
+                  Card {cardIdx + 1} of {cards.length}
+                </TalvraText>
+                <TalvraCard>
+                  <TalvraStack>
+                    <TalvraText as="h4">Q: {cards[cardIdx].q}</TalvraText>
+                    {cards[cardIdx].hint && (
+                      <TalvraText style={{ color: '#6b7280' }}>
+                        {showHint ? `Hint: ${cards[cardIdx].hint}` : 'Hint: •••'}
+                      </TalvraText>
+                    )}
+                    {showAnswer && (
+                      <TalvraText>
+                        A: {cards[cardIdx].a}
+                      </TalvraText>
+                    )}
+                    {showAnswer && cards[cardIdx].source && (
+                      <TalvraText style={{ color: '#475569' }}>
+                        Source: {Array.isArray(cards[cardIdx].source) ? cards[cardIdx].source.join(', ') : cards[cardIdx].source}
+                      </TalvraText>
+                    )}
+                    <TalvraStack>
+                      <TalvraButton onClick={() => setShowHint((v) => !v)}>
+                        {showHint ? 'Hide hint' : 'Show hint'}
+                      </TalvraButton>
+                      <TalvraButton onClick={() => setShowAnswer((v) => !v)}>
+                        {showAnswer ? 'Hide answer' : 'Show answer'}
+                      </TalvraButton>
+                    </TalvraStack>
+                  </TalvraStack>
+                </TalvraCard>
+                <TalvraStack>
+                  <TalvraButton
+                    onClick={() => {
+                      setCardIdx((i) => (i - 1 + cards.length) % cards.length);
+                      setShowAnswer(false);
+                      setShowHint(false);
+                    }}
+                  >
+                    Previous
+                  </TalvraButton>
+                  <TalvraButton
+                    onClick={() => {
+                      setCardIdx((i) => (i + 1) % cards.length);
+                      setShowAnswer(false);
+                      setShowHint(false);
+                    }}
+                  >
+                    Next
+                  </TalvraButton>
+                </TalvraStack>
+              </TalvraStack>
+            )}
           </TalvraStack>
         </TalvraCard>
 
