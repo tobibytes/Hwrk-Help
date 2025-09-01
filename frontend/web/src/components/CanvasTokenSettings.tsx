@@ -1,4 +1,4 @@
-import { TalvraStack, TalvraText, TalvraButton, Input } from '@ui';
+import { TalvraStack, TalvraText, TalvraButton, Input, useToast } from '@ui';
 import { useAPI } from '@api';
 import { useState } from 'react';
 
@@ -39,6 +39,7 @@ export function CanvasTokenSettings() {
   const [canvasBaseUrl, setCanvasBaseUrl] = useState('');
   const [canvasStatus, setCanvasStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   async function saveCanvasToken() {
     setBusy(true);
@@ -53,16 +54,23 @@ export function CanvasTokenSettings() {
         const res = await fetch(`${API_BASE}/api/canvas/courses`, { credentials: 'include' });
         if (res.ok) {
           setCanvasStatus('Connected to Canvas successfully.');
+          toast({ title: 'Canvas connected', description: 'Your token was saved and validated.', variant: 'success' });
         } else {
           const t = await res.text();
-          setCanvasStatus(`Saved token, but Canvas request failed: ${t || res.status}`);
+          const msg = `Saved token, but Canvas request failed: ${t || res.status}`;
+          setCanvasStatus(msg);
+          toast({ title: 'Canvas validation failed', description: msg, variant: 'warning' });
         }
       } catch (e: any) {
-        setCanvasStatus(`Saved token, but validation failed: ${String(e?.message || e)}`);
+        const msg = `Saved token, but validation failed: ${String(e?.message || e)}`;
+        setCanvasStatus(msg);
+        toast({ title: 'Validation error', description: msg, variant: 'error' });
       }
       setCanvasToken(''); // clear field after save
     } catch (e: any) {
-      setCanvasStatus(`Save failed: ${String(e?.message || e)}`);
+      const msg = `Save failed: ${String(e?.message || e)}`;
+      setCanvasStatus(msg);
+      toast({ title: 'Save failed', description: msg, variant: 'error' });
     } finally {
       setBusy(false);
     }
@@ -74,8 +82,11 @@ export function CanvasTokenSettings() {
     try {
       await fetchJSON(`${API_BASE}/api/auth/canvas/token`, { method: 'DELETE' });
       setCanvasStatus('Canvas token cleared.');
+      toast({ title: 'Token cleared', description: 'Your Canvas token has been removed.', variant: 'info' });
     } catch (e: any) {
-      setCanvasStatus(`Clear failed: ${String(e?.message || e)}`);
+      const msg = `Clear failed: ${String(e?.message || e)}`;
+      setCanvasStatus(msg);
+      toast({ title: 'Clear failed', description: msg, variant: 'error' });
     } finally {
       setBusy(false);
     }
