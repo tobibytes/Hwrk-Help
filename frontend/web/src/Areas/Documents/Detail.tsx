@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, Input, CodeBlock, SectionHeader } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, Input, CodeBlock, SectionHeader, PageContainer, Text as UiText } from '@ui';
 import { useParams } from 'react-router-dom';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
@@ -116,6 +116,7 @@ export default function DocumentDetailArea() {
 
   return (
     <TalvraSurface>
+      <PageContainer>
       <TalvraStack>
 <SectionHeader title={`Document: ${documentId ?? ''}`} />
         {error && <TalvraText>Error: {error}</TalvraText>}
@@ -165,7 +166,7 @@ export default function DocumentDetailArea() {
                   results.map((r) => (
                     <TalvraCard key={r.id}>
                       <TalvraStack>
-                        <TalvraText style={{ color: '#64748b' }}>score {(r.score * 100).toFixed(1)}%</TalvraText>
+                        <UiText color="gray-500">score {(r.score * 100).toFixed(1)}%</UiText>
                         <TalvraText>{r.snippet}</TalvraText>
                       </TalvraStack>
                     </TalvraCard>
@@ -200,6 +201,7 @@ export default function DocumentDetailArea() {
           <TalvraLink href={`/documents/${documentId}/video`}>View Video</TalvraLink>
         </TalvraStack>
       </TalvraStack>
+      </PageContainer>
     </TalvraSurface>
   );
 }

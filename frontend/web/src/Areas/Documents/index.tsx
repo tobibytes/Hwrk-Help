@@ -1,4 +1,4 @@
-import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, SectionHeader, Grid } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, SectionHeader, Grid, PageContainer, Text as UiText } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { useEffect, useState } from 'react';
 
@@ -41,7 +41,8 @@ export default function DocumentsArea() {
 
   return (
     <TalvraSurface>
-      <TalvraStack>
+<PageContainer>
+        <TalvraStack>
 <SectionHeader title="Documents" subtitle="Recently ingested content and outputs." />
         {error && <TalvraText>Error loading documents: {error}</TalvraText>}
 
@@ -63,9 +64,9 @@ export default function DocumentsArea() {
                         <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}/ai`}>AI</TalvraLink>
                         <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}/video`}>Video</TalvraLink>
                       </TalvraStack>
-                      <TalvraText style={{ color: '#64748b' }}>
+                      <UiText color="gray-500">
                         {d.mime_type ?? 'unknown'} • {d.size_bytes ? `${d.size_bytes} bytes` : 'size unknown'} • {new Date(d.created_at).toLocaleString()}
-                      </TalvraText>
+                      </UiText>
                     </TalvraStack>
                   </TalvraCard>
                 ))}
@@ -107,6 +108,7 @@ export default function DocumentsArea() {
           </TalvraStack>
         </TalvraStack>
       </TalvraStack>
+      </PageContainer>
     </TalvraSurface>
   );
 }

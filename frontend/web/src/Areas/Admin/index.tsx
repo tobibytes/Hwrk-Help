@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
-import { TalvraStack, TalvraText, TalvraLink, TalvraButton, GlassPanel, SectionHeader, Grid } from '@ui';
+import { TalvraStack, TalvraText, TalvraLink, TalvraButton, GlassPanel, SectionHeader, Grid, Text as UiText } from '@ui';
 import { AuthPanel } from '@/components/AuthPanel';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
@@ -72,9 +72,9 @@ export default function AdminArea() {
                   <TalvraText as="h4" style={{ marginBottom: 4 }}>
                     {d.title ?? d.doc_id}
                   </TalvraText>
-                  <TalvraText style={{ color: '#64748b' }}>
+                  <UiText color="gray-500">
                     {d.mime_type ?? 'unknown'} • {new Date(d.created_at).toLocaleString()}
-                  </TalvraText>
+                  </UiText>
                   <TalvraStack style={{ marginTop: 8, flexDirection: 'row', gap: 8 }}>
                     <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}`}>Open</TalvraLink>
                     <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}/ai`}>AI</TalvraLink>

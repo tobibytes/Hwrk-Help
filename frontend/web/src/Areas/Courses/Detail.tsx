@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, SectionHeader } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, SectionHeader, Grid, PageContainer, Text as UiText } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { getCourseDisplayName, setCourseDisplayName } from '@/utils/courseNames';
 
@@ -173,6 +173,7 @@ useEffect(() => {
 
   return (
     <TalvraSurface>
+      <PageContainer>
       <TalvraStack>
 <SectionHeader title={header} right={<TalvraButton onClick={rename} variant="secondary">Rename</TalvraButton>} />
 
@@ -191,9 +192,9 @@ useEffect(() => {
                   Sync status: {job.status}
                   {job.status === 'failed' && job.error_message ? ` — ${job.error_message}` : ''}
                 </TalvraText>
-                <TalvraText style={{ color: '#64748b' }}>
+                <UiText color="gray-500">
                   processed {job.processed} • skipped {job.skipped} • errors {job.errors}
-                </TalvraText>
+                </UiText>
               </TalvraStack>
             </TalvraCard>
           )}
@@ -215,9 +216,9 @@ useEffect(() => {
                           <TalvraLink href={buildPath(FRONT_ROUTES.DOCUMENT_AI, { documentId: d.doc_id })}>AI</TalvraLink>
                           <TalvraLink href={buildPath(FRONT_ROUTES.DOCUMENT_VIDEO, { documentId: d.doc_id })}>Video</TalvraLink>
                         </TalvraStack>
-                        <TalvraText style={{ color: '#64748b' }}>
+                        <UiText color="gray-500">
                           {d.mime_type ?? 'unknown'} • {d.size_bytes ? `${d.size_bytes} bytes` : 'size unknown'} • {new Date(d.created_at).toLocaleString()}
-                        </TalvraText>
+                        </UiText>
                       </TalvraStack>
                     </TalvraCard>
                   ))}
@@ -269,6 +270,7 @@ useEffect(() => {
           </TalvraStack>
         </TalvraStack>
       </TalvraStack>
+      </PageContainer>
     </TalvraSurface>
   );
 }

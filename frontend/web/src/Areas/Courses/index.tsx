@@ -1,5 +1,5 @@
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, TalvraButton, SectionHeader } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, TalvraButton, SectionHeader, PageContainer } from '@ui';
 import { useAPI, qk } from '@api';
 import { loadCourseNames, saveCourseNames, type CourseNameMap } from '@/utils/courseNames';
 import { useState } from 'react';
@@ -45,7 +45,8 @@ export default function CoursesArea() {
 
   return (
     <TalvraSurface>
-      <TalvraStack>
+<PageContainer>
+        <TalvraStack>
 <SectionHeader title="Courses" subtitle="Fetched from Canvas (token or fixtures)." />
         
         <TalvraStack>
@@ -100,6 +101,7 @@ export default function CoursesArea() {
           </TalvraStack>
         </TalvraCard>
       </TalvraStack>
+      </PageContainer>
     </TalvraSurface>
   );
 }

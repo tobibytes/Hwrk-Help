@@ -21,6 +21,8 @@ export { Textarea, type TextareaProps } from './Textarea';
 export { Switch, type SwitchProps } from './Switch';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { Grid, type GridProps } from './Grid';
+export { PageContainer, type PageContainerProps } from './PageContainer';
+export { Text, type TextProps } from './Text';
 
 // Export theme
 export { theme, type Theme } from './theme';
