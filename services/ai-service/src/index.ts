@@ -176,9 +176,33 @@ app.post('/ai/embed', async (req, reply) => {
     if (exists && !force) {
       return { ok: true, doc_id: docId, skipped: 'exists' }
     }
-    const mdRes = await fetch(`${INGESTION_BASE.replace(/\/$/, '')}/ingestion/blob/${encodeURIComponent(docId)}/markdown`)
-    if (!mdRes.ok) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'markdown not found' } })
-    const text = await mdRes.text()
+
+    // Try to read markdown, waiting briefly if ingestion hasn't finished yet
+    const mdUrl = `${INGESTION_BASE.replace(/\/$/, '')}/ingestion/blob/${encodeURIComponent(docId)}/markdown`
+    let text: string | null = null
+    const maxAttempts = 8
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const mdRes = await fetch(mdUrl)
+        if (mdRes.ok) {
+          text = await mdRes.text()
+          break
+        }
+        if (mdRes.status === 404) {
+          // Not ready yet; backoff and retry
+          await new Promise((r) => setTimeout(r, 300 * attempt))
+          continue
+        }
+        // Other error codes: give up with an error
+        const errText = await mdRes.text().catch(() => `HTTP ${mdRes.status}`)
+        return reply.code(mdRes.status).send({ error: { code: 'UPSTREAM_ERROR', message: errText } })
+      } catch (e) {
+        // Network error; brief backoff and retry
+        await new Promise((r) => setTimeout(r, 300 * attempt))
+      }
+    }
+    if (!text) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'markdown not ready' } })
+
     const chunks = chunkText(text)
     const vecs = await embedTexts(chunks)
     const payload = { doc_id: docId, model: OPENAI_EMBED_MODEL, chunks: chunks.map((t, i) => ({ id: `${docId}-${i}`, text: t, vector: vecs[i] })) }
@@ -258,7 +282,6 @@ app.get('/ai/search-all', async (req, reply) => {
         }
       } catch {}
     }
-
     const files = await fs.readdir(OUTPUT_DIR).catch(() => [])
     const embFiles = files.filter((f) => f.endsWith('.embeddings.json'))
     if (embFiles.length === 0) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'no embeddings available' } })

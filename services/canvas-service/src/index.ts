@@ -533,8 +533,9 @@ app.post('/canvas/sync', async (req, reply) => {
               } catch (e) {
                 app.log.warn({ err: e, attempt, docId }, 'ai embed trigger error')
               }
-              // backoff: 250ms, 500ms
+// backoff: 250ms, 500ms
               await new Promise((r) => setTimeout(r, 250 * attempt))
+            }
             }
           }
         } catch (err) {

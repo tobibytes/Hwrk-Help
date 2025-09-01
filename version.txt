@@ -1,0 +1,12 @@
+# Per-service image versions
+# Update is automatic for services you push via ./push.sh
+# Format: <service-name>=<version>
+# Accepts N, N.M, or N.M.P; script normalizes to semver.
+
+web=1.4
+api-gateway=1.2
+auth-service=1.2
+canvas-service=1.2
+ingestion-service=1.2
+media-service=1.2
+ai-service=1.2

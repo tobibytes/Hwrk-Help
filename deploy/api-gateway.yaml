@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: talvra
+  labels:
+    app: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      imagePullSecrets:
+        - name: acr-pull
+      containers:
+        - name: api-gateway
+          image: oldwhisper.azurecr.io/hwrk-api-gateway:1.2
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+              name: http
+          envFrom:
+            - secretRef:
+                name: talvra-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: talvra
+  labels:
+    app: api-gateway
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3001
+      targetPort: http
+      name: http
+  selector:
+    app: api-gateway
+

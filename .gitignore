@@ -75,3 +75,6 @@ Thumbs.db
 
 # Local development
 .env.development.local
+
+# K8s local secrets (never commit real secrets)
+deploy/secrets.local.yaml
