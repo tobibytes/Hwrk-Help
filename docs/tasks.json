@@ -607,7 +607,7 @@
             "title": "feat(search) RAG-style search over passages with filters",
             "body": "What: chunking + embeddings + filtered retrieval."
           },
-          "completed": false
+          "completed": true
         },
         {
           "id": "T070a",
