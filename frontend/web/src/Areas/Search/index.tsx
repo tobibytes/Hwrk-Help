@@ -1,4 +1,4 @@
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, Label, Input, Select, SectionHeader, CodeBlock } from '@ui';
 import { useEffect, useMemo, useState } from 'react';
 import { getCourseDisplayName } from '@/utils/courseNames';
 import { useAPI } from '@api';
@@ -125,71 +125,70 @@ export default function SearchArea() {
   return (
     <TalvraSurface>
       <TalvraStack>
-        <TalvraText as="h1">Search</TalvraText>
+<SectionHeader title="Search" subtitle="Semantic search across your content." />
 
         <TalvraCard>
           <TalvraStack>
-            <label>
-              <TalvraText as="span">Query</TalvraText>
-              <input
+<Label>
+              <span className="label-text">Query</span>
+              <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Type your question or keywords"
-                style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                fullWidth
               />
-            </label>
-            <label>
-              <TalvraText as="span">Top K</TalvraText>
-              <input
+            </Label>
+<Label>
+              <span className="label-text">Top K</span>
+              <Input
                 type="number"
                 min={1}
                 max={50}
                 value={k}
                 onChange={(e) => setK(Math.max(1, Math.min(50, Number(e.target.value) || 5)))}
-                style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: 100 }}
               />
-            </label>
+            </Label>
 
-            <label>
-              <TalvraText as="span">Course</TalvraText>
-              <select
+<Label>
+              <span className="label-text">Course</span>
+              <Select
                 value={selectedCourse}
                 onChange={(e) => setSelectedCourse(e.target.value)}
-                style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                fullWidth
               >
                 {courseOptions.map((c) => (
                   <option key={c.id || 'all'} value={c.id}>{c.name}</option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </Label>
 
-            <label>
-              <TalvraText as="span">Assignment</TalvraText>
-              <select
+<Label>
+              <span className="label-text">Assignment</span>
+              <Select
                 value={selectedAssignment}
                 onChange={(e) => setSelectedAssignment(e.target.value)}
                 disabled={!selectedCourse}
-                style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                fullWidth
               >
                 {assignmentOptions.map((a) => (
                   <option key={a.id || 'all'} value={a.id}>{a.name}</option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </Label>
 
-            <label>
-              <TalvraText as="span">Module</TalvraText>
-              <select
+<Label>
+              <span className="label-text">Module</span>
+              <Select
                 value={selectedModule}
                 onChange={(e) => setSelectedModule(e.target.value)}
                 disabled={!selectedCourse}
-                style={{ padding: 8, borderRadius: 6, border: '1px solid #cbd5e1', width: '100%' }}
+                fullWidth
               >
                 {moduleOptions.map((m) => (
                   <option key={m.id || 'all'} value={m.id}>{m.name}</option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </Label>
 
             <TalvraButton disabled={searchQ.isFetching || !q.trim()} onClick={() => searchQ.run()}>
               {searchQ.isFetching ? 'Searching…' : 'Search'}
@@ -222,9 +221,9 @@ export default function SearchArea() {
                           <TalvraText style={{ color: '#475569' }}>Course: {courseLabel}{courseLabel !== courseId ? ` (${courseId})` : ''}</TalvraText>
                         )}
                         <TalvraText style={{ color: '#64748b' }}>Score: {r.score.toFixed(3)}</TalvraText>
-                        <pre style={{ whiteSpace: 'pre-wrap', overflowX: 'auto', background: '#f8fafc', padding: 12, borderRadius: 8 }}>
+<CodeBlock>
                           {r.snippet}
-                        </pre>
+                        </CodeBlock>
                         <TalvraLink href={`/documents/${encodeURIComponent(r.doc_id)}`}>Open document</TalvraLink>
                       </TalvraStack>
                     </TalvraCard>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
-import { TalvraStack, TalvraText, TalvraLink, TalvraButton, GlassPanel } from '@ui';
+import { TalvraStack, TalvraText, TalvraLink, TalvraButton, GlassPanel, SectionHeader, Grid } from '@ui';
 import { AuthPanel } from '@/components/AuthPanel';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
@@ -45,29 +45,28 @@ export default function AdminArea() {
 
   return (
     <TalvraStack>
-      <GlassPanel>
+<GlassPanel>
         <TalvraStack>
-          <TalvraText as="h1">Welcome back</TalvraText>
-          <TalvraText>Quick actions to get you going.</TalvraText>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <SectionHeader title="Welcome back" subtitle="Quick actions to get you going." />
+          <TalvraStack style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <TalvraButton onClick={syncAllNow}>Sync Canvas</TalvraButton>
             <TalvraButton as="a" href={buildPath(FRONT_ROUTES.COURSES)}>Browse Courses</TalvraButton>
             <TalvraButton as="a" href={buildPath(FRONT_ROUTES.DOCUMENTS)}>View Documents</TalvraButton>
             <TalvraButton as="a" href={buildPath(FRONT_ROUTES.SETTINGS)}>Settings</TalvraButton>
-          </div>
+          </TalvraStack>
           {syncMsg && <TalvraText>{syncMsg}</TalvraText>}
         </TalvraStack>
       </GlassPanel>
 
       <GlassPanel>
         <TalvraStack>
-          <TalvraText as="h2">Recent documents</TalvraText>
+<TalvraText as="h2">Recent documents</TalvraText>
           {!docs ? (
             <TalvraText>Loading…</TalvraText>
           ) : docs.length === 0 ? (
             <TalvraText>No documents yet. Try Sync Canvas.</TalvraText>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+            <Grid>
               {docs.map((d) => (
                 <GlassPanel key={d.doc_id} style={{ padding: 16 }}>
                   <TalvraText as="h4" style={{ marginBottom: 4 }}>
@@ -76,13 +75,13 @@ export default function AdminArea() {
                   <TalvraText style={{ color: '#64748b' }}>
                     {d.mime_type ?? 'unknown'} • {new Date(d.created_at).toLocaleString()}
                   </TalvraText>
-                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                  <TalvraStack style={{ marginTop: 8, flexDirection: 'row', gap: 8 }}>
                     <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}`}>Open</TalvraLink>
                     <TalvraLink href={`/documents/${encodeURIComponent(d.doc_id)}/ai`}>AI</TalvraLink>
-                  </div>
+                  </TalvraStack>
                 </GlassPanel>
               ))}
-            </div>
+            </Grid>
           )}
         </TalvraStack>
       </GlassPanel>

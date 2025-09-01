@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, SectionHeader } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { getCourseDisplayName, setCourseDisplayName } from '@/utils/courseNames';
 
@@ -174,10 +174,7 @@ useEffect(() => {
   return (
     <TalvraSurface>
       <TalvraStack>
-        <TalvraStack>
-          <TalvraText as="h1">{header}</TalvraText>
-          <TalvraButton onClick={rename}>Rename</TalvraButton>
-        </TalvraStack>
+<SectionHeader title={header} right={<TalvraButton onClick={rename}>Rename</TalvraButton>} />
 
 <TalvraStack>
           <TalvraText as="h2">Documents</TalvraText>

@@ -20,6 +20,7 @@ export { Select, type SelectProps } from './Select';
 export { Textarea, type TextareaProps } from './Textarea';
 export { Switch, type SwitchProps } from './Switch';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
+export { Grid, type GridProps } from './Grid';
 
 // Export theme
 export { theme, type Theme } from './theme';

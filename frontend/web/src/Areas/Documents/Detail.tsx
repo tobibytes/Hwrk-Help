@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, Input, CodeBlock } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton, Input, CodeBlock, SectionHeader } from '@ui';
 import { useParams } from 'react-router-dom';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
@@ -117,7 +117,7 @@ export default function DocumentDetailArea() {
   return (
     <TalvraSurface>
       <TalvraStack>
-        <TalvraText as="h1">Document: {documentId}</TalvraText>
+<SectionHeader title={`Document: ${documentId ?? ''}`} />
         {error && <TalvraText>Error: {error}</TalvraText>}
 
         <TalvraCard>
