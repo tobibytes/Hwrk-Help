@@ -16,8 +16,13 @@
   "dependencies": {
     "fastify": "4.9.0"
   },
+  "workspaces": [
+    "frontend/web",
+    "frontend/packages/*",
+    "services/*"
+  ],
   "engines": {
-    "node": ">=18",
-    "pnpm": ">=8"
-  }
+    "node": ">=18"
+  },
+  "packageManager": "npm@10"
 }
