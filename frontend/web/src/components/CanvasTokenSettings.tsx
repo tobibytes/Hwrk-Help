@@ -129,7 +129,7 @@ placeholder="Enter Canvas access token"
             <TalvraButton disabled={busy || canvasToken.trim() === ''} onClick={saveCanvasToken}>
               Save token
             </TalvraButton>
-            <TalvraButton disabled={busy} onClick={clearCanvasToken}>
+<TalvraButton disabled={busy} onClick={clearCanvasToken} variant="secondary">
               Clear token
             </TalvraButton>
           </TalvraStack>

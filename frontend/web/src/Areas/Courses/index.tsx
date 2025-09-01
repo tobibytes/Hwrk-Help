@@ -87,7 +87,7 @@ export default function CoursesArea() {
                           <TalvraLink href={buildPath(FRONT_ROUTES.COURSE_DETAIL, { courseId: c.id })}>
                             View course
                           </TalvraLink>
-                          <TalvraButton onClick={() => renameCourse(c)}>
+<TalvraButton onClick={() => renameCourse(c)} variant="secondary">
                             Rename
                           </TalvraButton>
                         </TalvraStack>

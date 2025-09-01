@@ -174,7 +174,7 @@ useEffect(() => {
   return (
     <TalvraSurface>
       <TalvraStack>
-<SectionHeader title={header} right={<TalvraButton onClick={rename}>Rename</TalvraButton>} />
+<SectionHeader title={header} right={<TalvraButton onClick={rename} variant="secondary">Rename</TalvraButton>} />
 
 <TalvraStack>
           <TalvraText as="h2">Documents</TalvraText>
@@ -198,28 +198,30 @@ useEffect(() => {
             </TalvraCard>
           )}
           {errorDocs && <TalvraText>Error loading documents: {errorDocs}</TalvraText>}
-          <TalvraCard>
+<TalvraCard>
             <TalvraStack>
               {!docs ? (
                 <TalvraText>Loading…</TalvraText>
               ) : docs.length === 0 ? (
                 <TalvraText>No documents synced yet. Try Settings → Sync now.</TalvraText>
               ) : (
-                docs.map((d) => (
-                  <TalvraCard key={d.doc_id}>
-                    <TalvraStack>
-                      <TalvraText as="h4">{d.title ?? d.doc_id}</TalvraText>
+                <Grid>
+                  {docs.map((d) => (
+                    <TalvraCard key={d.doc_id}>
                       <TalvraStack>
-                        <TalvraLink href={buildPath(FRONT_ROUTES.DOCUMENT_DETAIL, { documentId: d.doc_id })}>Open</TalvraLink>
-                        <TalvraLink href={buildPath(FRONT_ROUTES.DOCUMENT_AI, { documentId: d.doc_id })}>AI</TalvraLink>
-                        <TalvraLink href={buildPath(FRONT_ROUTES.DOCUMENT_VIDEO, { documentId: d.doc_id })}>Video</TalvraLink>
+                        <TalvraText as="h4">{d.title ?? d.doc_id}</TalvraText>
+                        <TalvraStack>
+                          <TalvraLink href={buildPath(FRONT_ROUTES.DOCUMENT_DETAIL, { documentId: d.doc_id })}>Open</TalvraLink>
+                          <TalvraLink href={buildPath(FRONT_ROUTES.DOCUMENT_AI, { documentId: d.doc_id })}>AI</TalvraLink>
+                          <TalvraLink href={buildPath(FRONT_ROUTES.DOCUMENT_VIDEO, { documentId: d.doc_id })}>Video</TalvraLink>
+                        </TalvraStack>
+                        <TalvraText style={{ color: '#64748b' }}>
+                          {d.mime_type ?? 'unknown'} • {d.size_bytes ? `${d.size_bytes} bytes` : 'size unknown'} • {new Date(d.created_at).toLocaleString()}
+                        </TalvraText>
                       </TalvraStack>
-                      <TalvraText style={{ color: '#64748b' }}>
-                        {d.mime_type ?? 'unknown'} • {d.size_bytes ? `${d.size_bytes} bytes` : 'size unknown'} • {new Date(d.created_at).toLocaleString()}
-                      </TalvraText>
-                    </TalvraStack>
-                  </TalvraCard>
-                ))
+                    </TalvraCard>
+                  ))}
+                </Grid>
               )}
             </TalvraStack>
           </TalvraCard>

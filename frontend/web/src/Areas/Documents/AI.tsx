@@ -129,21 +129,23 @@ export default function DocumentAI() {
                   </TalvraStack>
                 </TalvraCard>
                 <TalvraStack>
-                  <TalvraButton
+<TalvraButton
                     onClick={() => {
                       setCardIdx((i) => (i - 1 + cards.length) % cards.length);
                       setShowAnswer(false);
                       setShowHint(false);
                     }}
+                    variant="secondary"
                   >
                     Previous
                   </TalvraButton>
-                  <TalvraButton
+<TalvraButton
                     onClick={() => {
                       setCardIdx((i) => (i + 1) % cards.length);
                       setShowAnswer(false);
                       setShowHint(false);
                     }}
+                    variant="secondary"
                   >
                     Next
                   </TalvraButton>

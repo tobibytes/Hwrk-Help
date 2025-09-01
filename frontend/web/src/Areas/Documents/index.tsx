@@ -1,4 +1,4 @@
-import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, SectionHeader } from '@ui';
+import { TalvraSurface, TalvraStack, TalvraText, TalvraLink, TalvraCard, SectionHeader, Grid } from '@ui';
 import { FRONT_ROUTES, buildPath } from '@/app/routes';
 import { useEffect, useState } from 'react';
 
@@ -53,7 +53,7 @@ export default function DocumentsArea() {
             ) : docs.length === 0 ? (
               <TalvraText>No documents found yet. Try Settings → Sync now after saving your Canvas token.</TalvraText>
             ) : (
-              <TalvraStack>
+<Grid>
                 {docs.map((d) => (
                   <TalvraCard key={d.doc_id}>
                     <TalvraStack>
@@ -69,7 +69,7 @@ export default function DocumentsArea() {
                     </TalvraStack>
                   </TalvraCard>
                 ))}
-              </TalvraStack>
+              </Grid>
             )}
           </TalvraStack>
         </TalvraCard>
