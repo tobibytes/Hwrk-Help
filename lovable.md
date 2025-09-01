@@ -3,6 +3,9 @@
 Audience: Lovable UI Agent (and human co-pilots)
 Purpose: Redesign and polish the Talvra frontend while preserving all existing functionality and contracts. Produce high-quality, accessible, responsive UI built on our primitives. Your output should be drop-in compatible with the current codebase.
 
+## Product context (why Talvra exists)
+Talvra helps students learn more effectively by transforming course materials into study aids. It ingests content from Canvas (files and pages), extracts text and structure, generates AI-guided notes and flashcards (with academic integrity guardrails), enables semantic search across documents, and can produce media summaries (video with TTS) for review. The goal is to save time, improve comprehension, and keep materials organized by course, assignment, and module—without ever providing direct answers to graded questions. Primary users are students; instructors may optionally use outputs to support learning.
+
 Key constraints in this repo
 - Tech stack: Vite + React + TypeScript + React Router v6
 - Structure: frontend/web/src/Areas/* contain pages. Avoid raw HTML in Areas—use our @ui primitives
