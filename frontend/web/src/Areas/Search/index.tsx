@@ -1,6 +1,7 @@
 import { TalvraSurface, TalvraStack, TalvraText, TalvraCard, TalvraLink, TalvraButton } from '@ui';
 import { useEffect, useMemo, useState } from 'react';
 import { getCourseDisplayName } from '@/utils/courseNames';
+import { useAPI } from '@api';
 
 const API_BASE: string = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:3001';
 
@@ -23,9 +24,6 @@ function parseCanvasCourseId(docId: string): string | null {
 export default function SearchArea() {
   const [q, setQ] = useState('');
   const [k, setK] = useState(5);
-  const [results, setResults] = useState<SearchResult[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   // Filters
   const [courses, setCourses] = useState<Course[]>([]);
@@ -76,6 +74,26 @@ export default function SearchArea() {
     return () => { cancelled = true };
   }, [selectedCourse]);
 
+  // Search query via useAPI with manual trigger (run)
+  const searchUrl = `${API_BASE}/api/ai/search-all?q=${encodeURIComponent(q)}&k=${encodeURIComponent(String(k))}`
+    + `${selectedCourse ? `&course_id=${encodeURIComponent(selectedCourse)}` : ''}`
+    + `${selectedAssignment ? `&assignment_id=${encodeURIComponent(selectedAssignment)}` : ''}`
+    + `${selectedModule ? `&module_id=${encodeURIComponent(selectedModule)}` : ''}`;
+
+  const searchQ = useAPI<{ ok: true; results: SearchResult[] }>(
+    ['ai-search-all', q, k, selectedCourse, selectedAssignment, selectedModule],
+    () => fetchJSON(searchUrl),
+    { manual: true }
+  );
+
+  useEffect(() => {
+    const r = searchQ.data?.results;
+    if (r && r.length > 0) {
+      void loadDocMetadata(r);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQ.data]);
+
   async function loadDocMetadata(forResults: SearchResult[]) {
     // Build set of courseIds to fetch documents for
     const courseIds = new Set<string>();
@@ -102,26 +120,6 @@ export default function SearchArea() {
       })
     );
     setDocMeta(metas);
-  }
-
-  async function runSearch() {
-    setBusy(true);
-    setError(null);
-    setResults(null);
-    try {
-      const url = `${API_BASE}/api/ai/search-all?q=${encodeURIComponent(q)}&k=${encodeURIComponent(String(k))}${selectedCourse ? `&course_id=${encodeURIComponent(selectedCourse)}` : ''}${selectedAssignment ? `&assignment_id=${encodeURIComponent(selectedAssignment)}` : ''}${selectedModule ? `&module_id=${encodeURIComponent(selectedModule)}` : ''}`;
-      const res = await fetch(url, { credentials: 'include' });
-      if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
-      const json = (await res.json()) as { ok: true; results: SearchResult[] };
-
-      setResults(json.results);
-      // Load metadata to enrich display with titles and course names
-      void loadDocMetadata(json.results);
-    } catch (e: any) {
-      setError(String(e?.message || e));
-    } finally {
-      setBusy(false);
-    }
   }
 
   return (
@@ -193,23 +191,25 @@ export default function SearchArea() {
               </select>
             </label>
 
-            <TalvraButton disabled={busy || !q.trim()} onClick={runSearch}>
-              {busy ? 'Searching…' : 'Search'}
+            <TalvraButton disabled={searchQ.isFetching || !q.trim()} onClick={() => searchQ.run()}>
+              {searchQ.isFetching ? 'Searching…' : 'Search'}
             </TalvraButton>
-            {error && <TalvraText style={{ color: '#dc2626' }}>Error: {error}</TalvraText>}
+            {searchQ.isError && (
+              <TalvraText style={{ color: '#dc2626' }}>Error: {String((searchQ.error as any)?.message ?? searchQ.error)}</TalvraText>
+            )}
           </TalvraStack>
         </TalvraCard>
 
         <TalvraCard>
           <TalvraStack>
             <TalvraText as="h3">Results</TalvraText>
-            {results === null ? (
+            {searchQ.data === undefined ? (
               <TalvraText>Enter a query to search your content.</TalvraText>
-            ) : results.length === 0 ? (
+            ) : (searchQ.data?.results?.length ?? 0) === 0 ? (
               <TalvraText>No results found.</TalvraText>
             ) : (
               <TalvraStack>
-                {results.map((r) => {
+                {(searchQ.data?.results || []).map((r) => {
                   const meta = docMeta[r.doc_id];
                   const courseId = meta?.course_canvas_id || parseCanvasCourseId(r.doc_id);
                   const title = (meta && meta.title) ? meta.title : r.doc_id;
