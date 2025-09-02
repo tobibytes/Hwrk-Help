@@ -1,5 +1,6 @@
 # Global ignores for Docker builds
 node_modules
+**/node_modules
 .pnpm-store
 .pnp.cjs
 .pnp.loader.mjs

@@ -23,7 +23,8 @@ const Settings = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [testEmail, setTestEmail] = useState('');
   const [templateVars, setTemplateVars] = useState('{}');
-  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const PLACEHOLDER_VALUE = '__placeholder__'
+  const [selectedTemplate, setSelectedTemplate] = useState(PLACEHOLDER_VALUE);
 
   // Mock data
   const templates = [
@@ -56,6 +57,10 @@ const Settings = () => {
 
   const handleSendTemplate = () => {
     try {
+      if (!selectedTemplate || selectedTemplate === PLACEHOLDER_VALUE) {
+        alert('Please select a template');
+        return;
+      }
       JSON.parse(templateVars);
       console.log('Sending template:', selectedTemplate, 'with vars:', templateVars);
     } catch (error) {
@@ -224,7 +229,7 @@ const Settings = () => {
                       onChange={(e) => setSelectedTemplate(e.target.value)}
                       className="w-full px-3 py-2 rounded-md border border-input-border bg-background"
                     >
-                      <option value="">Select a template...</option>
+                      <option value={PLACEHOLDER_VALUE} disabled>Select a template...</option>
                       {templates.map(template => (
                         <option key={template.name} value={template.name}>
                           {template.description}
@@ -233,7 +238,7 @@ const Settings = () => {
                     </select>
                   </div>
 
-                  {selectedTemplate && (
+                  {selectedTemplate && selectedTemplate !== PLACEHOLDER_VALUE && (
                     <div>
                       <label className="block text-sm font-medium text-foreground mb-2">
                         Template Variables (JSON)
@@ -254,7 +259,7 @@ const Settings = () => {
                   <Button
                     variant="secondary"
                     onClick={handleSendTemplate}
-                    disabled={!selectedTemplate || !templateVars.trim()}
+                    disabled={!selectedTemplate || selectedTemplate === PLACEHOLDER_VALUE || !templateVars.trim()}
                   >
                     <SendIcon className="h-4 w-4" />
                     Send Template Email

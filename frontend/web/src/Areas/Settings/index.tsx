@@ -118,7 +118,8 @@ export default function SettingsArea() {
   // Template send UI state
   const [templates, setTemplates] = useState<Array<{ name: string; description: string; fields: string[] }>>([]);
   const [templateBusy, setTemplateBusy] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const PLACEHOLDER_VALUE = '__placeholder__';
+  const [selectedTemplate, setSelectedTemplate] = useState(PLACEHOLDER_VALUE);
   const [templateTo, setTemplateTo] = useState('');
   const [templateSubject, setTemplateSubject] = useState('');
   const [varsJson, setVarsJson] = useState<string>(
@@ -153,7 +154,7 @@ export default function SettingsArea() {
     setTemplateBusy(true);
     setTemplateMsg(null);
     try {
-      if (!selectedTemplate) throw new Error('Select a template');
+      if (!selectedTemplate || selectedTemplate === PLACEHOLDER_VALUE) throw new Error('Select a template');
       let vars: any = {};
       try { vars = JSON.parse(varsJson || '{}'); } catch (e) { throw new Error('Vars JSON is invalid'); }
       const body: any = { template: selectedTemplate, vars };
@@ -216,13 +217,13 @@ export default function SettingsArea() {
                         onChange={(e) => setSelectedTemplate(e.target.value)}
                         fullWidth
                       >
-                        <option value="">Select a template</option>
+                        <option value={PLACEHOLDER_VALUE} disabled>Select a template</option>
                         {templates.map((t) => (
                           <option key={t.name} value={t.name}>{t.name}</option>
                         ))}
                       </Select>
                     </Label>
-                    {selectedTemplate && (
+                    {selectedTemplate && selectedTemplate !== PLACEHOLDER_VALUE && (
                       <UiText color="gray-500">
                         {templates.find((t) => t.name === selectedTemplate)?.description}
                         {' '}Fields: {(templates.find((t) => t.name === selectedTemplate)?.fields || []).join(', ')}
@@ -255,7 +256,7 @@ export default function SettingsArea() {
                         fullWidth
                       />
                     </Label>
-                    <TalvraButton disabled={templateBusy || !selectedTemplate} onClick={sendTemplated}>
+                    <TalvraButton disabled={templateBusy || !selectedTemplate || selectedTemplate === PLACEHOLDER_VALUE} onClick={sendTemplated}>
                       {templateBusy ? 'Sending…' : 'Send templated email'}
                     </TalvraButton>
                     {templateMsg && <TalvraText>{templateMsg}</TalvraText>}
