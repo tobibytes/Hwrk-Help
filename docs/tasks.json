@@ -1191,5 +1191,32 @@
         }
       ]
     }
+    ,
+    {
+      "name": "Phase 13 - Homework-first MVP",
+      "tasks": [
+        {
+          "id": "H001",
+          "title": "Homework MVP UI: Homework list + Assignment Workspace (lovable-frontend)",
+          "branch": "web/homework-mvp",
+          "paths": ["lovable-frontend/**"],
+          "steps": [
+            "Add Homework (/homework) listing assignments aggregated across courses",
+            "Add Assignment Workspace (/homework/:courseId/:assignmentId) with tabs: Brief, Plan, Resources",
+            "'Build Study Pack' uses /api/ai/search-all with filters (course_id, assignment_id)"
+          ],
+          "run": ["npm --prefix lovable-frontend run dev"],
+          "acceptance": [
+            "Homework page shows assignments with course, due date, and link to workspace",
+            "Workspace fetches resources and displays top excerpts with links to documents"
+          ],
+          "pr": {
+            "title": "feat(web): Homework-first MVP (list + workspace)",
+            "body": "What: Homework page and Assignment Workspace in lovable-frontend; How: aggregates Canvas assignments and uses search-all to build a study pack; Why: pivot to homework-first UX."
+          },
+          "completed": true
+        }
+      ]
+    }
   ]
 }
