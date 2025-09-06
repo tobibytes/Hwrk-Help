@@ -4,6 +4,7 @@ import { Stack } from '@/components/ui/stack';
 import { Button } from '@/components/ui/button';
 import { Chip } from '@/components/ui/chip';
 import { Box } from '@/components/ui/box';
+import { Link } from 'react-router-dom';
 import heroImage from '@/assets/hero-illustration.jpg';
 import { 
   BookOpenIcon,
@@ -13,17 +14,25 @@ import {
   RefreshCwIcon,
   ArrowRightIcon,
   SparklesIcon,
-  ClockIcon
+  ClockIcon,
+  ListTodoIcon
 } from 'lucide-react';
 
 const IndexPage = () => {
   const quickActions = [
     {
+      title: 'Homework',
+      description: 'See assignments and open workspaces',
+      icon: ListTodoIcon,
+      href: '/homework',
+      variant: 'hero' as const,
+    },
+    {
       title: 'Sync Now',
       description: 'Update your course materials',
       icon: RefreshCwIcon,
       href: '/settings',
-      variant: 'hero' as const,
+      variant: 'default' as const,
     },
     {
       title: 'Browse Courses',
@@ -110,12 +119,15 @@ const IndexPage = () => {
                   <p className="text-sm text-foreground-secondary">{action.description}</p>
                 </div>
                 <Button 
+                  asChild
                   variant={action.variant} 
                   size="sm" 
                   className="w-full group-hover:scale-105 transition-transform"
                 >
-                  Get Started
-                  <ArrowRightIcon className="h-4 w-4" />
+                  <Link to={action.href}>
+                    Get Started
+                    <ArrowRightIcon className="h-4 w-4" />
+                  </Link>
                 </Button>
               </Stack>
             </Surface>
