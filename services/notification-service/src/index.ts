@@ -55,7 +55,7 @@ app.post('/notify/test', async (req, reply) => {
   }
 })
 
-import { renderTemplate, listTemplates } from './templates'
+import { renderTemplate, listTemplates } from './templates.js'
 
 // Send a templated notification
 app.post('/notify/send-template', async (req, reply) => {
@@ -138,7 +138,7 @@ async function tickScheduler() {
       const subject = row.subject as string | null
       const vars = (typeof row.vars === 'object') ? row.vars : (() => { try { return JSON.parse(row.vars) } catch { return {} } })()
       try {
-        const { renderTemplate } = await import('./templates')
+const { renderTemplate } = await import('./templates.js')
         const rendered = renderTemplate(tpl as any, vars)
         const res = await sendEmail({ log: app.log } as any, { to, subject: subject || rendered.subject, text: rendered.text, html: rendered.html })
         if ((res as any)?.sent) {

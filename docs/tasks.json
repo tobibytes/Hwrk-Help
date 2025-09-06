@@ -1191,5 +1191,80 @@
         }
       ]
     }
+    ,
+    {
+      "name": "Phase 13 - Homework-first MVP",
+      "tasks": [
+        {
+          "id": "H001",
+          "title": "Homework MVP UI: Homework list + Assignment Workspace (lovable-frontend)",
+          "branch": "web/homework-mvp",
+          "paths": ["lovable-frontend/**"],
+          "steps": [
+            "Add Homework (/homework) listing assignments aggregated across courses",
+            "Add Assignment Workspace (/homework/:courseId/:assignmentId) with tabs: Brief, Plan, Resources",
+            "'Build Study Pack' uses /api/ai/search-all with filters (course_id, assignment_id)"
+          ],
+          "run": ["npm --prefix lovable-frontend run dev"],
+          "acceptance": [
+            "Homework page shows assignments with course, due date, and link to workspace",
+            "Workspace fetches resources and displays top excerpts with links to documents"
+          ],
+          "pr": {
+            "title": "feat(web): Homework-first MVP (list + workspace)",
+            "body": "What: Homework page and Assignment Workspace in lovable-frontend; How: aggregates Canvas assignments and uses search-all to build a study pack; Why: pivot to homework-first UX."
+          },
+          "completed": true
+        },
+        {
+          "id": "H002",
+          "title": "Homework endpoints v1: resources + brief + plan",
+          "branch": "backend/homework-endpoints",
+          "paths": ["services/api-gateway/**", "services/ai-service/**"],
+          "steps": [
+            "GET /homework/:assignment_id/resources wraps search-all with course/assignment filters",
+            "POST /homework/:assignment_id/brief extracts deliverables/constraints/format/rubric",
+            "POST /homework/:assignment_id/plan produces step list with refs and eta"
+          ],
+          "run": [
+            "curl /api/homework/{assignment_id}/resources",
+            "curl -X POST /api/homework/{assignment_id}/brief",
+            "curl -X POST /api/homework/{assignment_id}/plan"
+          ],
+          "acceptance": [
+            "Resources returns top-k snippets with doc ids",
+            "Brief JSON persisted and returned on subsequent calls",
+            "Plan JSON persisted; steps include refs and eta"
+          ],
+          "pr": {
+            "title": "feat(homework): endpoints v1 (resources, brief, plan)",
+            "body": "Implements homework resources, brief extraction, and plan endpoints in gateway/ai-service; persists artifacts under AI_OUTPUT_DIR/homework/{assignment_id}."
+          },
+          "completed": false
+        },
+        {
+          "id": "H003",
+          "title": "Homework UI tabs and wiring (Brief, Resources, Plan)",
+          "branch": "web/homework-tabs",
+          "paths": ["lovable-frontend/**"],
+          "steps": [
+            "Add tabs to Assignment Workspace: Brief | Resources | Plan",
+            "Wire tabs to H002 endpoints and display data",
+            "Persist workspace selections locally"
+          ],
+          "run": ["npm --prefix lovable-frontend run dev"],
+          "acceptance": [
+            "Brief renders structured JSON clearly",
+            "Resources list shows snippets with open doc/AI actions",
+            "Plan checklist displays steps and allows marking done"
+          ],
+          "pr": {
+            "title": "feat(web): Homework tabs (Brief, Resources, Plan) wired to endpoints",
+            "body": "Adds tabs to Assignment Workspace and integrates backend homework endpoints for an assignment-first workflow."
+          },
+          "completed": false
+        }
+      ]
+    }
   ]
 }

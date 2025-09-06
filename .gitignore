@@ -77,7 +77,8 @@ Thumbs.db
 .env.development.local
 
 # Ignore reference frontend from Lovable (kept outside workspace)
-lovable-frontend/
+# NOTE: no longer ignored; lovable-frontend is now part of this repo
+# lovable-frontend/
 
 # K8s local secrets (never commit real secrets)
 deploy/secrets.local.yaml
