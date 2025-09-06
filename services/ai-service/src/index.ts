@@ -401,6 +401,249 @@ app.get('/ai/versions/:doc_id', async (req, reply) => {
   }
 })
 
+// ---------------- Homework endpoints (H002) ----------------
+function ensureHomeworkDir(assignmentId: string) {
+  const dir = path.join(OUTPUT_DIR, 'homework', assignmentId)
+  return fs.mkdir(dir, { recursive: true }).then(() => dir)
+}
+async function readJsonIfExists<T>(filePath: string): Promise<T | null> {
+  try { return JSON.parse(await fs.readFile(filePath, 'utf8')) as T } catch { return null }
+}
+async function writeJson(filePath: string, data: any) {
+  const tmp = `${filePath}.tmp-${Date.now()}`
+  await fs.writeFile(tmp, JSON.stringify(data, null, 2), 'utf8')
+  await fs.rename(tmp, filePath)
+}
+
+// GET /homework/:assignment_id/resources -> wraps search-all with assignment/course/module filters
+app.get('/homework/:assignment_id/resources', async (req, reply) => {
+  const { assignment_id } = req.params as { assignment_id: string }
+  const q = ((req.query as any)?.q ?? '').toString().trim()
+  const kRaw = Number((req.query as any)?.k ?? 8)
+  const k = Number.isFinite(kRaw) ? Math.max(1, Math.min(kRaw, 50)) : 8
+  const courseId = ((req.query as any)?.course_id ?? '').toString().trim() || ''
+  const moduleId = ((req.query as any)?.module_id ?? '').toString().trim() || ''
+  if (!q) return reply.code(400).send({ error: { code: 'INVALID_ARGUMENT', message: 'q required' } })
+  try {
+    // Allowed docs based on assignment and optional course/module
+    const params = new URLSearchParams()
+    if (courseId) params.set('course_id', courseId)
+    if (assignment_id) params.set('assignment_id', assignment_id)
+    if (moduleId) params.set('module_id', moduleId)
+    params.set('limit', '1000')
+    let allowed: Set<string> | null = null
+    try {
+      const docsRes = await fetch(`${CANVAS_BASE.replace(/\/$/, '')}/canvas/documents?${params.toString()}`)
+      if (docsRes.ok) {
+        const dj = (await docsRes.json()) as { ok: true; documents: Array<{ doc_id: string }> }
+        allowed = new Set((dj.documents || []).map((d) => d.doc_id))
+      }
+    } catch {}
+
+    const files = await fs.readdir(OUTPUT_DIR).catch(() => [])
+    const embFiles = files.filter((f) => f.endsWith('.embeddings.json'))
+    if (embFiles.length === 0) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'no embeddings available' } })
+    const qVec = (await embedTexts([q]))[0]
+
+    type Row = { id: string; doc_id: string; text: string; score: number }
+    const rows: Row[] = []
+    for (const f of embFiles) {
+      try {
+        const full = path.join(OUTPUT_DIR, f)
+        const json = JSON.parse(await fs.readFile(full, 'utf8')) as { doc_id?: string; chunks: Array<{ id: string; text: string; vector: number[] }> }
+        const docId = json.doc_id || f.replace(/\.embeddings\.json$/, '')
+        if (allowed && !allowed.has(docId)) continue
+        for (const c of json.chunks) {
+          const score = cosine(qVec, c.vector)
+          rows.push({ id: c.id, doc_id: docId, text: c.text, score })
+        }
+      } catch {}
+    }
+    if (rows.length === 0) return { ok: true, q, results: [] }
+    rows.sort((a, b) => b.score - a.score)
+    const top = rows.slice(0, k).map((r) => ({ id: r.id, doc_id: r.doc_id, score: r.score, snippet: r.text.slice(0, 300) + (r.text.length > 300 ? ' …' : '') }))
+    return { ok: true, q, assignment_id, results: top }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+// POST /homework/:assignment_id/brief -> extract and persist structured brief
+app.post('/homework/:assignment_id/brief', async (req, reply) => {
+  const { assignment_id } = req.params as { assignment_id: string }
+  const body = (req.body ?? {}) as { text?: string; title?: string; course_id?: string }
+  const text = (body.text || '').toString().trim()
+  const title = (body.title || '').toString().trim() || `Assignment ${assignment_id}`
+  const AI_GENERATION = (process.env.AI_GENERATION || 'stub').toLowerCase()
+  try {
+    const dir = await ensureHomeworkDir(assignment_id)
+    const target = path.join(dir, 'brief.json')
+    // If exists, return existing unless text is provided to update
+    const existing = await readJsonIfExists<any>(target)
+    if (existing && !text) return { ok: true, assignment_id, brief: existing, persisted: true }
+
+    let brief: any = {
+      assignment_id,
+      title,
+      deliverables: ['Write-up', 'Citations'],
+      constraints: ['Follow instructions', 'Submit before due date'],
+      format: { length: '1-2 pages', citation: 'APA/MLA as required' },
+      rubric_points: ['Understanding', 'Evidence', 'Clarity', 'Mechanics'],
+      updated_at: new Date().toISOString()
+    }
+
+    if (AI_GENERATION === 'real' && OPENAI_API_KEY && text) {
+      try {
+        const prompt = [
+          { role: 'system', content: 'Return ONLY JSON in the shape {"brief": {"title": string, "deliverables": string[], "constraints": string[], "format": {"length": string, "citation": string}, "rubric_points": string[]}}. No prose. Be concise.' },
+          { role: 'user', content: `Extract a structured brief for this assignment titled "${title}".\n\n${text}` }
+        ]
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${OPENAI_API_KEY}` },
+          body: JSON.stringify({ model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini', temperature: 0.1, messages: prompt, response_format: { type: 'json_object' } })
+        })
+        if (res.ok) {
+          const j = await res.json()
+          const raw = (j.choices?.[0]?.message?.content || '').trim()
+          const parsed = JSON.parse(raw)
+          if (parsed && parsed.brief) {
+            brief = { assignment_id, ...parsed.brief, updated_at: new Date().toISOString() }
+          }
+        }
+      } catch (_) { /* fallback to stub */ }
+    }
+
+    await writeJson(target, brief)
+    return { ok: true, assignment_id, brief, persisted: true }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+// GET /homework/:assignment_id/brief -> return persisted brief
+app.get('/homework/:assignment_id/brief', async (req, reply) => {
+  const { assignment_id } = req.params as { assignment_id: string }
+  try {
+    const dir = await ensureHomeworkDir(assignment_id)
+    const target = path.join(dir, 'brief.json')
+    const brief = await readJsonIfExists<any>(target)
+    if (!brief) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'brief not found' } })
+    return { ok: true, assignment_id, brief }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+// POST /homework/:assignment_id/plan -> create and persist a step-by-step plan
+app.post('/homework/:assignment_id/plan', async (req, reply) => {
+  const { assignment_id } = req.params as { assignment_id: string }
+  const body = (req.body ?? {}) as { q?: string; steps?: number; course_id?: string; module_id?: string }
+  const q = ((body.q ?? '').toString().trim()) || 'Study the assignment materials'
+  const stepsCountRaw = Number(body.steps ?? 5)
+  const stepsCount = Number.isFinite(stepsCountRaw) ? Math.max(3, Math.min(stepsCountRaw, 10)) : 5
+  const courseId = (body.course_id || '').toString().trim()
+  const moduleId = (body.module_id || '').toString().trim()
+  const AI_GENERATION = (process.env.AI_GENERATION || 'stub').toLowerCase()
+  try {
+    const dir = await ensureHomeworkDir(assignment_id)
+    const target = path.join(dir, 'plan.json')
+
+    // Try to pull some refs via embeddings search
+    const params = new URLSearchParams()
+    if (courseId) params.set('course_id', courseId)
+    params.set('assignment_id', assignment_id)
+    if (moduleId) params.set('module_id', moduleId)
+    params.set('limit', '1000')
+    let allowed: Set<string> | null = null
+    try {
+      const docsRes = await fetch(`${CANVAS_BASE.replace(/\/$/, '')}/canvas/documents?${params.toString()}`)
+      if (docsRes.ok) {
+        const dj = (await docsRes.json()) as { ok: true; documents: Array<{ doc_id: string }> }
+        allowed = new Set((dj.documents || []).map((d) => d.doc_id))
+      }
+    } catch {}
+
+    const files = await fs.readdir(OUTPUT_DIR).catch(() => [])
+    const embFiles = files.filter((f) => f.endsWith('.embeddings.json'))
+    const qVec = (await embedTexts([q]))[0]
+    const refScores: Array<{ doc_id: string; score: number }> = []
+    for (const f of embFiles) {
+      try {
+        const full = path.join(OUTPUT_DIR, f)
+        const json = JSON.parse(await fs.readFile(full, 'utf8')) as { doc_id?: string; chunks: Array<{ text: string; vector: number[] }> }
+        const docId = json.doc_id || f.replace(/\.embeddings\.json$/, '')
+        if (allowed && !allowed.has(docId)) continue
+        let best = 0
+        for (const c of json.chunks) {
+          const score = cosine(qVec, c.vector)
+          if (score > best) best = score
+        }
+        if (best > 0) refScores.push({ doc_id: docId, score: best })
+      } catch {}
+    }
+    refScores.sort((a, b) => b.score - a.score)
+    const refs = Array.from(new Set(refScores.slice(0, 6).map((r) => r.doc_id)))
+
+    let plan: any = {
+      assignment_id,
+      q,
+      steps: Array.from({ length: stepsCount }).map((_, i) => ({
+        id: `s${i + 1}`,
+        title: [
+          'Understand the brief', 'Collect key resources', 'Outline your approach',
+          'Draft the solution', 'Review for gaps', 'Polish and format', 'Citations and checks', 'Final review', 'Submit'
+        ][i] || `Step ${i + 1}`,
+        eta_minutes: 30 + i * 10,
+        refs: refs.slice(0, Math.max(1, Math.min(3, refs.length)))
+      })),
+      updated_at: new Date().toISOString()
+    }
+
+    if (AI_GENERATION === 'real' && OPENAI_API_KEY) {
+      try {
+        const prompt = [
+          { role: 'system', content: 'Return ONLY JSON in the shape {"plan": {"steps": Array<{"title": string, "eta_minutes": number, "refs"?: string[]}>}}. No prose.' },
+          { role: 'user', content: `Create ${stepsCount} clear steps for this assignment. Use the general goal: ${q}. Keep steps focused and concrete.` }
+        ]
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${OPENAI_API_KEY}` },
+          body: JSON.stringify({ model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini', temperature: 0.2, messages: prompt, response_format: { type: 'json_object' } })
+        })
+        if (res.ok) {
+          const j = await res.json()
+          const raw = (j.choices?.[0]?.message?.content || '').trim()
+          const parsed = JSON.parse(raw)
+          if (parsed && parsed.plan && Array.isArray(parsed.plan.steps)) {
+            const steps = parsed.plan.steps.map((s: any, idx: number) => ({ id: `s${idx + 1}`, title: String(s.title || `Step ${idx + 1}`), eta_minutes: Number(s.eta_minutes || 30), refs: Array.isArray(s.refs) ? s.refs.slice(0, 3).map((x: any) => String(x)) : [] }))
+            plan = { assignment_id, q, steps, updated_at: new Date().toISOString() }
+          }
+        }
+      } catch (_) { /* fallback */ }
+    }
+
+    await writeJson(target, plan)
+    return { ok: true, assignment_id, plan, persisted: true }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
+// GET /homework/:assignment_id/plan -> return persisted plan
+app.get('/homework/:assignment_id/plan', async (req, reply) => {
+  const { assignment_id } = req.params as { assignment_id: string }
+  try {
+    const dir = await ensureHomeworkDir(assignment_id)
+    const target = path.join(dir, 'plan.json')
+    const plan = await readJsonIfExists<any>(target)
+    if (!plan) return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'plan not found' } })
+    return { ok: true, assignment_id, plan }
+  } catch (e: any) {
+    return reply.code(500).send({ error: { code: 'INTERNAL', message: String(e?.message || e) } })
+  }
+})
+
 app
   .listen({ host: HOST, port: PORT })
   .then(() => app.log.info(`AI service listening on ${HOST}:${PORT}, out=${OUTPUT_DIR}`))

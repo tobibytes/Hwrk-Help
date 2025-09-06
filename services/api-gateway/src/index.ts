@@ -114,6 +114,21 @@ await app.register(httpProxy as any, {
   }
 })
 
+// Proxy Homework endpoints to AI service
+await app.register(httpProxy as any, {
+  upstream: AI_UPSTREAM,
+  prefix: '/api/homework',
+  rewritePrefix: '/homework',
+  rewriteHeaders: (headers: Record<string, string>, req: any) => {
+    const origin = req.headers?.origin
+    if (origin && origin === FRONTEND_ORIGIN) {
+      headers['access-control-allow-origin'] = origin
+      headers['access-control-allow-credentials'] = 'true'
+    }
+    return headers
+  }
+})
+
 // Proxy to media-service
 const MEDIA_UPSTREAM = resolveUpstream({
   url: process.env.MEDIA_SERVICE_URL,
